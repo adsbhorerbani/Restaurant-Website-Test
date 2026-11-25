@@ -3783,6 +3783,415 @@ async function tqCustomerMode(table) {
   }
 })();
 </script>
+<!-- ===================== RESPONSIVE MENU + PREP RANGE + MORE BUTTON ADDON =====================
+     Paste this whole block just BEFORE </body> (after the PHOTO MENU ADDON).
+     Nothing else in your file needs to change.
+============================================================================================= -->
+<style>
+  /* ---------- Responsive layout (phone 2 col / tablet 3 col / PC 4-5 col) ---------- */
+  .pm2 .pm-wrap { max-width:none; }
+  .pm2 .pm-in { max-width:1200px; margin:0 auto; }
+  .pm2 .pm-head { padding:22px 18px 30px; }
+  .pm2 .pm-head .pm-in { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:14px; }
+  .pm2 .pm-ttl { order:1; min-width:0; }
+  .pm2 .pm-basket { order:2; }
+  .pm2 .pm-search { order:3; width:100%; margin-top:4px; }
+  .pm2 .pm-body { padding:24px 14px 130px; }
+  .pm2 .pm-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+  .pm2 .pm-prow { display:flex; align-items:center; justify-content:space-between; gap:6px; margin-top:8px; }
+  .pm2 .pm-prow .pm-price { margin:0; }
+  .pm2 .pm-more { display:inline-flex; align-items:center; gap:2px; padding:5px 11px; border-radius:999px; border:1px solid #b9d8d3; background:#eef7f5; color:#1f7f75; font-family:inherit; font-size:12px; font-weight:800; cursor:pointer; white-space:nowrap; }
+  .pm2 .pm-more:active { background:#d9eee9; }
+  .pm2 .pm-bar button { max-width:640px; }
+  .pm2 .pm-card:focus-visible { outline:3px solid #1f7f75; }
+
+  @media (max-width:360px) {
+    .pm2 .pm-title { font-size:30px; }
+    .pm2 .pm-price { font-size:15px; }
+    .pm2 .pm-more { padding:4px 9px; }
+  }
+  @media (min-width:640px) {
+    .pm2 .pm-head { padding:28px 28px 34px; }
+    .pm2 .pm-body { padding:30px 24px 130px; }
+    .pm2 .pm-grid { grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
+    .pm2 .pm-title { font-size:40px; }
+    .pm2 .pm-name { font-size:15px; min-height:38px; }
+  }
+  @media (min-width:768px) {
+    .pm2 .pm-search { order:2; width:auto; flex:1; max-width:420px; margin:0 16px; }
+    .pm2 .pm-basket { order:3; }
+    .pm2 .pm-tabs { flex-wrap:wrap; overflow:visible; row-gap:10px; }
+    .pm2 .pm-bg { align-items:center; padding:20px; }
+    .pm2 .pm-sheet { max-width:520px; border-radius:24px; }
+    .pm2 .pm-dimg { border-radius:24px 24px 0 0; }
+  }
+  @media (min-width:1024px) {
+    .pm2 .pm-head { padding:32px 40px 40px; }
+    .pm2 .pm-body { padding:34px 40px 140px; border-top-left-radius:56px; }
+    .pm2 .pm-grid { grid-template-columns:repeat(4,minmax(0,1fr)); gap:20px; }
+    .pm2 .pm-tab.on { font-size:30px; }
+    .pm2 .pm-card { transition:transform .15s, box-shadow .15s; }
+    .pm2 .pm-card:hover { transform:translateY(-3px); box-shadow:0 8px 20px rgba(20,60,55,.15); }
+  }
+  @media (min-width:1360px) {
+    .pm2 .pm-grid { grid-template-columns:repeat(5,minmax(0,1fr)); }
+  }
+</style>
+
+<script>
+(function () {
+  const QR_FIREBASE = {
+    apiKey: "AIzaSyDVysBJIQTxXDfs533SkAQvQ0HMsty2OiU",
+    authDomain: "restaurant-website-test.firebaseapp.com",
+    projectId: "restaurant-website-test",
+    storageBucket: "restaurant-website-test.firebasestorage.app",
+    messagingSenderId: "837789642324",
+    appId: "1:837789642324:web:d9a32bfb793f6427f4c7c1"
+  };
+  const isCustomer = (typeof TQ_TABLE !== 'undefined' && TQ_TABLE !== null);
+
+  /* "10" -> 10 | "10-15" / "10 – 15 min" -> "10 - 15" */
+  function cleanPrep(raw) {
+    let s = String(raw == null ? '' : raw).trim();
+    if (!s) return 0;
+    s = s.replace(/\s*min(ute)?s?\.?$/i, '').trim();
+    if (/^\d+(\.\d+)?$/.test(s)) return Number(s);
+    return s.replace(/\s*[-–—]\s*/g, ' - ').slice(0, 20);
+  }
+
+  if (isCustomer) customerResponsiveMenu(); else posSideRange();
+
+  /* =====================================================================
+     1) POS SIDE: Prep Time e "10 - 15" lekha jabe
+     ===================================================================== */
+  function posSideRange() {
+    const inp = document.getElementById('pm-prep');
+    if (!inp) return;
+    inp.type = 'text';
+    inp.removeAttribute('min');
+    inp.setAttribute('inputmode', 'text');
+    inp.placeholder = 'e.g. 10 ba 10 - 15';
+    if (inp.previousElementSibling) inp.previousElementSibling.textContent = 'Prep Time (min) - range dewa jay: 10 - 15';
+
+    const oSub = window.handleProductFormSubmit;
+    window.handleProductFormSubmit = function (e) {
+      const id = document.getElementById('form-prod-id').value;
+      const raw = inp.value;
+      const before = menuItems.length;
+      oSub.apply(this, arguments);
+      let p = null;
+      if (id) p = menuItems.find(x => x.id === id);
+      else if (menuItems.length > before) p = menuItems[0];
+      if (!p) return;
+      p.prep = cleanPrep(raw);
+      saveLS(K_MENU, menuItems);
+    };
+  }
+
+  /* =====================================================================
+     2) CUSTOMER SIDE: responsive menu + More button
+     ===================================================================== */
+  async function loadMenuData() {
+    let d = null;
+    try { const r = await fetch('menu.json?t=' + Date.now(), { cache: 'no-store' }); if (r.ok) d = await r.json(); } catch (e) {}
+    try {
+      if (typeof firebase === 'undefined') throw new Error('no firebase');
+      const app = firebase.apps.find(a => a.name === 'qrcust') || firebase.initializeApp(QR_FIREBASE, 'qrcust');
+      try { await app.auth().signInAnonymously(); } catch (e) {}
+      const db = app.firestore();
+      const [ms, cs] = await Promise.race([
+        Promise.all([db.collection('menu').get(), db.collection('settings').doc('config').get()]),
+        new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000))
+      ]);
+      if (!ms.empty) {
+        const items = ms.docs
+          .map(x => { const v = x.data(); try { return [v.seq || 0, JSON.parse(v.json)]; } catch (e) { return null; } })
+          .filter(Boolean).sort((a, b) => b[0] - a[0]).map(a => a[1]);
+        let cfg = {};
+        try { if (cs.exists) cfg = JSON.parse(cs.data().json); } catch (e) {}
+        const b = d || {};
+        d = {
+          name: cfg.name || b.name || shopConfig.name,
+          tagline: cfg.tagline ?? b.tagline ?? shopConfig.tagline,
+          address: cfg.address ?? b.address ?? shopConfig.address,
+          phone: cfg.phone ?? b.phone ?? shopConfig.phone,
+          logo: cfg.logo || b.logo || '',
+          categories: cfg.categories || b.categories || shopConfig.categories,
+          menu: items.map(p => ({
+            name: p.name, category: p.category, img: p.img || '', prep: p.prep || 0, rating: p.rating || 0,
+            variants: (p.variants || []).map(v => ({ size: v.size, price: v.price, on: v.on !== false }))
+          }))
+        };
+      }
+    } catch (e) { console.warn('Live menu load failed, using menu.json', e); }
+    if (!d) d = { name: shopConfig.name, tagline: shopConfig.tagline, address: shopConfig.address, phone: shopConfig.phone, logo: shopConfig.logo || '', categories: shopConfig.categories, menu: menuItems };
+    return d;
+  }
+
+  async function customerResponsiveMenu() {
+    // purono menu-r flash na dekhate lukiye rakhi (kono karone fail hole 20s por abar dekhabe)
+    const hide = document.createElement('style');
+    hide.textContent = '#customer-menu:not(.pm2){visibility:hidden}';
+    document.head.appendChild(hide);
+    setTimeout(() => hide.remove(), 20000);
+
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+    let n = 0;
+    while (!document.getElementById('pm-grid') && n++ < 300) await sleep(100);
+    const old = document.getElementById('customer-menu');
+    if (!old) { hide.remove(); return; }
+
+    const table = String(TQ_TABLE || '').trim().slice(0, 30);
+    const d = await loadMenuData();
+    document.title = d.name + ' - Menu';
+
+    const root = old.cloneNode(false);      // purono listener gula bad
+    root.className = 'pm pm2';
+    old.replaceWith(root);
+    setTimeout(() => hide.remove(), 300);
+
+    const st = { cat: 'all', q: '', open: null, cartOpen: false, name: '' };
+    const cart = {};
+    const fmt = v => Math.round(Number(v) || 0).toLocaleString('en-US');
+    const totals = () => Object.values(cart).reduce((a, i) => ({ q: a.q + i.qty, t: a.t + i.qty * i.price }), { q: 0, t: 0 });
+    const $ = id => document.getElementById(id);
+
+    const CLOCK = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+    const STAR = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg>';
+    const BASKET = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h18l-1.8 10.2a1.5 1.5 0 0 1-1.5 1.3H6.3a1.5 1.5 0 0 1-1.5-1.3z"/><path d="M8 9l2.5-5M16 9l-2.5-5"/></svg>';
+    const SEARCH = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>';
+    const CHEV = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>';
+
+    root.innerHTML = `
+      <div class="pm-wrap">
+        <div id="pm-main">
+          <div class="pm-head"><div class="pm-in">
+            <div class="pm-ttl"><h1 class="pm-title">Menu</h1><div class="pm-sub">${esc(d.name)} • ${esc(table || 'Table ?')}</div></div>
+            <button class="pm-basket" data-a="openCart" aria-label="Order">${BASKET}<span id="pm-badge" class="pm-badge">0</span></button>
+            <div class="pm-search">${SEARCH}<input id="pm-q" type="text" placeholder="Search"></div>
+          </div></div>
+          <div class="pm-body"><div class="pm-in">
+            <div id="pm-tabs" class="pm-tabs"></div>
+            <div id="pm-grid" class="pm-grid"></div>
+            <div class="pm-foot">${esc(d.address || '')} ${d.phone ? '• ' + esc(d.phone) : ''}</div>
+          </div></div>
+        </div>
+        <div id="pm-done" style="display:none;padding:24px 16px;max-width:480px;margin:0 auto"></div>
+        <div id="pm-bar" class="pm-bar"><button data-a="openCart"><span id="pm-bar-q">0 items</span><span>View Order →</span><span id="pm-bar-t">৳ 0</span></button></div>
+        <div id="pm-detail" class="pm-bg" data-a="bg"></div>
+        <div id="pm-cart" class="pm-bg" data-a="bg"></div>
+      </div>`;
+
+    const minPrice = p => { const a = p.variants.filter(v => v.on !== false).map(v => Number(v.price) || 0); return a.length ? Math.min(...a) : 0; };
+    const onCount = p => p.variants.filter(v => v.on !== false).length;
+    const prepTxt = v => {
+      const c = cleanPrep(v);
+      if (!c) return '';
+      return /[a-z]/i.test(String(c)) ? String(c) : c + ' min';
+    };
+    const meta = p => {
+      const pt = prepTxt(p.prep), rt = Number(p.rating) || 0;
+      return (pt ? `<span class="pm-m pm-t">${CLOCK} ${esc(pt)}</span>` : '') + (rt > 0 ? `<span class="pm-m pm-r">${STAR} ${rt.toFixed(1)}</span>` : '');
+    };
+    const dishQty = pi => Object.entries(cart).filter(([k]) => k.split('|')[0] === String(pi)).reduce((a, [, i]) => a + i.qty, 0);
+    const ctrl = k => cart[k]
+      ? `<div class="pm-ctrl"><button class="pm-b" data-a="dec" data-k="${k}">−</button><b>${cart[k].qty}</b><button class="pm-b p" data-a="inc" data-k="${k}">+</button></div>`
+      : `<button class="pm-add" data-a="inc" data-k="${k}">Add</button>`;
+
+    function drawTabs() {
+      const cats = ['all', ...(d.categories || [])];
+      $('pm-tabs').innerHTML = cats.map(c => `<button class="pm-tab ${st.cat === c ? 'on' : ''}" data-a="cat" data-c="${esc(c)}">${c === 'all' ? 'All' : esc(c)}</button>`).join('');
+    }
+
+    function drawGrid() {
+      const cards = [];
+      d.menu.forEach((p, pi) => {
+        if (st.cat !== 'all' && p.category !== st.cat) return;
+        if (st.q && !p.name.toLowerCase().includes(st.q) && !String(p.category).toLowerCase().includes(st.q)) return;
+        if (!onCount(p)) return;
+        const q = dishQty(pi);
+        const multi = onCount(p) > 1;
+        cards.push(`
+          <div class="pm-card" role="button" tabindex="0" data-a="dish" data-p="${pi}">
+            <div class="pm-imgbox">${p.img ? `<img src="${esc(p.img)}" alt="" loading="lazy">` : '<div class="pm-ph">🍽️</div>'}${q ? `<span class="pm-qty">${q}</span>` : ''}</div>
+            <div class="pm-cb">
+              <div class="pm-name">${esc(p.name)}</div>
+              <div class="pm-meta">${meta(p)}</div>
+              <div class="pm-prow">
+                <div class="pm-price">৳ ${fmt(minPrice(p))}</div>
+                ${multi ? `<button class="pm-more" data-a="dish" data-p="${pi}" aria-label="More sizes">More ${CHEV}</button>` : ''}
+              </div>
+            </div>
+          </div>`);
+      });
+      $('pm-grid').innerHTML = cards.length ? cards.join('') : '<div class="pm-empty">Kono khabar paoa jayni</div>';
+    }
+
+    function drawBar() {
+      const t = totals();
+      $('pm-bar').style.display = t.q ? 'block' : 'none';
+      $('pm-bar-q').textContent = t.q + (t.q === 1 ? ' item' : ' items');
+      $('pm-bar-t').textContent = '৳ ' + fmt(t.t);
+      const bd = $('pm-badge');
+      bd.textContent = t.q; bd.style.display = t.q ? 'flex' : 'none';
+    }
+
+    function drawDetail() {
+      const box = $('pm-detail');
+      if (st.open === null) { box.style.display = 'none'; return; }
+      const p = d.menu[st.open];
+      box.style.display = 'flex';
+      box.innerHTML = `
+        <div class="pm-sheet">
+          ${p.img ? `<img class="pm-dimg" src="${esc(p.img)}" alt="">` : '<div class="pm-dimg pm-ph">🍽️</div>'}
+          <div class="pm-dbody">
+            <div class="pm-dname">${esc(p.name)}</div>
+            <div class="pm-meta">${meta(p)}</div>
+            <div style="margin-top:8px">${p.variants.map((v, vi) => v.on === false ? '' : `
+              <div class="pm-var"><div><div class="pm-vs">${esc(v.size)}</div><div class="pm-vp">৳ ${fmt(v.price)}</div></div>${ctrl(st.open + '|' + vi)}</div>`).join('')}</div>
+            <button class="pm-primary" data-a="closeD">Done</button>
+          </div>
+        </div>`;
+    }
+
+    function drawCart() {
+      const box = $('pm-cart');
+      if (!st.cartOpen) { box.style.display = 'none'; return; }
+      const rows = Object.entries(cart);
+      box.style.display = 'flex';
+      box.innerHTML = `
+        <div class="pm-sheet" style="display:flex;flex-direction:column">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid #eef2f1">
+            <div style="font-size:18px;font-weight:800">Your Order • ${esc(table)}</div>
+            <button class="pm-x" data-a="closeC">×</button>
+          </div>
+          <div style="padding:6px 20px;flex:1;overflow-y:auto">${rows.map(([k, i]) => `
+            <div style="padding:12px 0;border-bottom:1px solid #eef2f1">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+                <div style="min-width:0"><div style="font-weight:700;font-size:14px">${esc(i.name)}</div><div style="font-size:11px;color:#6b7b78">${esc(i.size)} • ৳ ${fmt(i.price)}</div></div>
+                ${ctrl(k)}
+                <div style="width:62px;text-align:right;font-weight:800;font-size:14px">৳ ${fmt(i.price * i.qty)}</div>
+              </div>
+              <input class="pm-input" data-note="${k}" value="${esc(i.note)}" maxlength="60" placeholder="Note (jemon: jhal kom)" style="margin-top:8px;padding:8px 11px;font-size:16px">
+            </div>`).join('') || '<div style="padding:30px 0;text-align:center;color:#8a9a97">Order empty</div>'}</div>
+          <div style="padding:14px 20px 20px;border-top:1px solid #eef2f1">
+            <input id="pm-name" class="pm-input" type="text" maxlength="30" value="${esc(st.name)}" placeholder="Apnar naam (optional)">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin:14px 0 4px"><b>Total</b><b style="font-size:22px;color:#1f7f75">৳ ${fmt(totals().t)}</b></div>
+            <div style="font-size:11px;color:#8a9a97">Final bill restaurant-er dam onujayi hobe. Payment khabar shesh-e counter-e.</div>
+            <button id="pm-place" class="pm-primary" data-a="place">Place Order • অর্ডার করুন</button>
+            <div id="pm-err" class="pm-err"></div>
+          </div>
+        </div>`;
+    }
+
+    function refresh() {
+      drawGrid(); drawBar(); drawDetail();
+      if (st.cartOpen) { if (!Object.keys(cart).length) st.cartOpen = false; drawCart(); }
+    }
+    const showErr = m => { const e = $('pm-err'); if (!e) return; e.textContent = m; e.style.display = m ? 'block' : 'none'; };
+
+    async function place() {
+      showErr('');
+      const lines = Object.values(cart);
+      if (!lines.length) return;
+      if (!table) { showErr('Table number paoa jayni. QR abar scan korun.'); return; }
+      let last = 0;
+      try { last = Number(localStorage.getItem('qo_last')) || 0; } catch (e) {}
+      if (Date.now() - last < 15000) { showErr('Ektu opekkha korun, abar order pathate 15 second lagbe.'); return; }
+
+      const btn = $('pm-place');
+      btn.disabled = true; btn.textContent = 'Sending...';
+      const nm = (st.name || '').trim().slice(0, 30) || 'Guest';
+      const id = 'QR-' + Date.now().toString().slice(-6) + Math.floor(Math.random() * 90 + 10);
+      const kot = {
+        id, time: new Date().toISOString(), orderType: 'Dine-In', table,
+        customerName: nm + ' (QR)',
+        items: lines.map(i => ({
+          key: i.name + '_' + i.size, productId: '', name: i.name, category: i.cat, size: i.size,
+          sku: '', price: i.price, buyPrice: 0, qty: i.qty, note: i.note || '', qr: true
+        }))
+      };
+      try {
+        if (typeof firebase === 'undefined') throw new Error('no firebase');
+        const app = firebase.apps.find(a => a.name === 'qrcust') || firebase.initializeApp(QR_FIREBASE, 'qrcust');
+        try { await app.auth().signInAnonymously(); } catch (e) {}
+        await Promise.race([
+          app.firestore().collection('kots').doc(id).set({ json: JSON.stringify(kot), seq: Date.now() }),
+          new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 15000))
+        ]);
+        try { localStorage.setItem('qo_last', String(Date.now())); } catch (e) {}
+        const t = totals();
+        st.cartOpen = false; st.open = null;
+        drawCart(); drawDetail();
+        $('pm-main').style.display = 'none'; $('pm-bar').style.display = 'none';
+        const dn = $('pm-done'); dn.style.display = 'block';
+        dn.innerHTML = `
+          <div style="background:#fff;border-radius:24px;padding:34px 20px;text-align:center;box-shadow:0 6px 20px rgba(15,60,55,.12)">
+            <div style="font-size:52px">✅</div>
+            <div style="font-size:22px;font-weight:800;margin-top:10px">Order Placed!</div>
+            <div style="font-size:14px;color:#52625f;margin-top:4px">Apnar order kitchen-e pouche gechhe.</div>
+            <div style="margin-top:16px;display:inline-block;padding:8px 16px;background:#eef5f3;border-radius:12px;font-weight:800">${esc(id)} • ${esc(table)}</div>
+            <div style="margin-top:10px;font-size:13px;color:#6b7b78">${t.q} items • ৳ ${fmt(t.t)}</div>
+            <button class="pm-primary" data-a="more" style="margin-top:22px">Aro order korun</button>
+          </div>`;
+        Object.keys(cart).forEach(k => delete cart[k]);
+        st.name = '';
+      } catch (e) {
+        console.error(e);
+        btn.disabled = false; btn.textContent = 'Place Order • অর্ডার করুন';
+        showErr('Order pathano gelo na. Internet check kore abar chesta korun ba waiter-ke bolun.');
+      }
+    }
+
+    root.addEventListener('click', e => {
+      const b = e.target.closest('[data-a]');
+      if (!b) return;
+      const a = b.dataset.a, k = b.dataset.k;
+      if (a === 'bg') { if (e.target === b) { st.open = null; st.cartOpen = false; drawDetail(); drawCart(); } return; }
+      if (a === 'dish') { st.open = Number(b.dataset.p); drawDetail(); }
+      else if (a === 'closeD') { st.open = null; drawDetail(); }
+      else if (a === 'openCart') { if (!Object.keys(cart).length) return; st.cartOpen = true; st.open = null; drawDetail(); drawCart(); }
+      else if (a === 'closeC') { st.cartOpen = false; drawCart(); }
+      else if (a === 'inc') {
+        const [pi, vi] = k.split('|').map(Number);
+        const p = d.menu[pi], v = p && p.variants[vi];
+        if (!v || v.on === false) return;
+        if (!cart[k]) {
+          if (Object.keys(cart).length >= 40) return;
+          cart[k] = { name: p.name, size: v.size, price: Number(v.price) || 0, qty: 0, cat: p.category, note: '' };
+        }
+        if (cart[k].qty < 20) cart[k].qty++;
+        refresh();
+      } else if (a === 'dec') {
+        if (cart[k]) { cart[k].qty--; if (cart[k].qty <= 0) delete cart[k]; }
+        refresh();
+      } else if (a === 'cat') { st.cat = b.dataset.c; drawTabs(); drawGrid(); }
+      else if (a === 'place') place();
+      else if (a === 'more') {
+        $('pm-done').style.display = 'none'; $('pm-main').style.display = 'block';
+        refresh(); window.scrollTo(0, 0);
+      }
+    });
+
+    // keyboard (PC): Enter / Space diye card kholа
+    root.addEventListener('keydown', e => {
+      if ((e.key === 'Enter' || e.key === ' ') && e.target.classList && e.target.classList.contains('pm-card')) {
+        e.preventDefault(); e.target.click();
+      }
+    });
+
+    root.addEventListener('input', e => {
+      const t = e.target;
+      if (t.id === 'pm-q') { st.q = t.value.toLowerCase().trim(); drawGrid(); }
+      else if (t.id === 'pm-name') st.name = t.value;
+      else if (t.dataset && t.dataset.note !== undefined && cart[t.dataset.note]) cart[t.dataset.note].note = t.value.trim().slice(0, 60);
+    });
+
+    drawTabs(); drawGrid(); drawBar();
+  }
+})();
+</script>
+<!-- =================== END RESPONSIVE MENU ADDON =================== -->
 <!-- =================== END PHOTO MENU ADDON =================== -->
 
 <!-- =================== END QR CUSTOMER ORDER ADDON =================== -->
