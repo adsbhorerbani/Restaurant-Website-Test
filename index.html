@@ -3504,6 +3504,45 @@ async function tqCustomerMode(table) {
   /* =====================================================================
      2) CUSTOMER SIDE: QR scan korle photo wala menu
      ===================================================================== */
+    async function loadMenuData() {
+    let d = null;
+    // 1) fallback: menu.json
+    try { const r = await fetch('menu.json?t=' + Date.now(), { cache: 'no-store' }); if (r.ok) d = await r.json(); } catch (e) {}
+    // 2) live: Firebase (photo shoho latest menu)
+    try {
+      if (typeof firebase === 'undefined') throw new Error('no firebase');
+      const app = firebase.apps.find(a => a.name === 'qrcust') || firebase.initializeApp(QR_FIREBASE, 'qrcust');
+      try { await app.auth().signInAnonymously(); } catch (e) {}
+      const db = app.firestore();
+      const [ms, cs] = await Promise.race([
+        Promise.all([db.collection('menu').get(), db.collection('settings').doc('config').get()]),
+        new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000))
+      ]);
+      if (!ms.empty) {
+        const items = ms.docs
+          .map(x => { const v = x.data(); try { return [v.seq || 0, JSON.parse(v.json)]; } catch (e) { return null; } })
+          .filter(Boolean).sort((a, b) => b[0] - a[0]).map(a => a[1]);
+        let cfg = {};
+        try { if (cs.exists) cfg = JSON.parse(cs.data().json); } catch (e) {}
+        const b = d || {};
+        d = {
+          name: cfg.name || b.name || shopConfig.name,
+          tagline: cfg.tagline ?? b.tagline ?? shopConfig.tagline,
+          address: cfg.address ?? b.address ?? shopConfig.address,
+          phone: cfg.phone ?? b.phone ?? shopConfig.phone,
+          logo: cfg.logo || b.logo || '',
+          categories: cfg.categories || b.categories || shopConfig.categories,
+          menu: items.map(p => ({
+            name: p.name, category: p.category, img: p.img || '', prep: p.prep || 0, rating: p.rating || 0,
+            variants: (p.variants || []).map(v => ({ size: v.size, price: v.price, on: v.on !== false }))
+          }))
+        };
+      }
+    } catch (e) { console.warn('Live menu load failed, using menu.json', e); }
+    if (!d) d = { name: shopConfig.name, tagline: shopConfig.tagline, address: shopConfig.address, phone: shopConfig.phone, logo: shopConfig.logo || '', categories: shopConfig.categories, menu: menuItems };
+    return d;
+  }
+     
   async function customerPhotoMenu() {
     const sleep = ms => new Promise(r => setTimeout(r, ms));
     let n = 0;
@@ -3515,9 +3554,7 @@ async function tqCustomerMode(table) {
     old.replaceWith(root);
 
     const table = String(TQ_TABLE || '').trim().slice(0, 30);
-    let d = null;
-    try { const r = await fetch('menu.json?t=' + Date.now(), { cache: 'no-store' }); if (r.ok) d = await r.json(); } catch (e) {}
-    if (!d) d = { name: shopConfig.name, tagline: shopConfig.tagline, address: shopConfig.address, phone: shopConfig.phone, logo: shopConfig.logo || '', categories: shopConfig.categories, menu: menuItems };
+    let d = await loadMenuData();
     document.title = d.name + ' - Menu';
 
     const st = { cat: 'all', q: '', open: null, cartOpen: false, name: '' };
