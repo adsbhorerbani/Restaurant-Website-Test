@@ -3318,7 +3318,436 @@ async function tqCustomerMode(table) {
     drawChips(); drawList(); updateBar();
   }
 })();
+</script><!-- ===================== PHOTO MENU ADDON =====================
+     Paste this whole block just BEFORE </body> (after the QR CUSTOMER ORDER ADDON).
+     Nothing else in your file needs to change.
+================================================================ -->
+<link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ---------- Customer photo menu (QR scan page) ---------- */
+  .pm { font-family:'Urbanist','Inter',system-ui,sans-serif; background:#a9d3cc; min-height:100vh; color:#14201e; }
+  .pm * { box-sizing:border-box; }
+  .pm-wrap { max-width:480px; margin:0 auto; min-height:100vh; background:#a9d3cc; position:relative; }
+  .pm-head { background:#fff; padding:24px 20px 30px; position:relative; z-index:0; }
+  .pm-row { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .pm-title { font-size:36px; font-weight:800; margin:0; line-height:1.1; letter-spacing:-.5px; }
+  .pm-sub { font-size:12px; color:#6b7b78; margin-top:2px; font-weight:600; }
+  .pm-basket { position:relative; width:46px; height:46px; border-radius:12px; background:#1f7f75; display:flex; align-items:center; justify-content:center; border:0; cursor:pointer; flex-shrink:0; }
+  .pm-badge { position:absolute; top:-7px; right:-7px; background:#e5533d; color:#fff; font-size:11px; font-weight:800; min-width:20px; height:20px; border-radius:10px; align-items:center; justify-content:center; padding:0 5px; display:none; }
+  .pm-search { margin-top:18px; display:flex; align-items:center; gap:8px; border-bottom:1px solid #d9e3e1; padding-bottom:10px; color:#9aa8a5; }
+  .pm-search input { flex:1; border:0; outline:0; background:transparent; font-size:16px; font-family:inherit; color:#14201e; }
+  .pm-body { margin-top:-24px; background:#a9d3cc; border-top-left-radius:44px; padding:26px 16px 130px; min-height:75vh; position:relative; z-index:1; }
+  .pm-tabs { display:flex; gap:20px; overflow-x:auto; align-items:baseline; padding:0 4px 16px; scrollbar-width:none; }
+  .pm-tabs::-webkit-scrollbar { display:none; }
+  .pm-tab { background:none; border:0; font-family:inherit; font-size:15px; font-weight:500; color:#31413e; white-space:nowrap; cursor:pointer; padding:0; }
+  .pm-tab.on { font-size:27px; font-weight:800; color:#0f1a18; }
+  .pm-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .pm-card { background:#fff; border-radius:18px; overflow:hidden; border:0; padding:0; text-align:left; cursor:pointer; font-family:inherit; display:flex; flex-direction:column; box-shadow:0 2px 8px rgba(20,60,55,.08); }
+  .pm-card:active { transform:scale(.98); }
+  .pm-imgbox { position:relative; width:100%; aspect-ratio:4/3; background:#eef3f2; }
+  .pm-imgbox img { width:100%; height:100%; object-fit:cover; display:block; }
+  .pm-ph { display:flex; align-items:center; justify-content:center; font-size:38px; background:linear-gradient(135deg,#eef5f3,#dcebe8); width:100%; height:100%; }
+  .pm-qty { position:absolute; top:8px; right:8px; background:#1f7f75; color:#fff; font-weight:800; font-size:12px; min-width:22px; height:22px; border-radius:11px; display:flex; align-items:center; justify-content:center; padding:0 6px; }
+  .pm-cb { padding:10px 12px 13px; }
+  .pm-name { font-size:13.5px; font-weight:700; line-height:1.25; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:34px; }
+  .pm-meta { display:flex; align-items:center; gap:12px; margin-top:6px; min-height:16px; }
+  .pm-m { display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:600; }
+  .pm-t { color:#1f7f75; }
+  .pm-r { color:#e5533d; }
+  .pm-price { margin-top:8px; font-size:17px; font-weight:800; }
+  .pm-foot { text-align:center; font-size:11px; color:#41625d; padding:26px 0 0; }
+  .pm-empty { grid-column:1/-1; text-align:center; padding:50px 0; color:#41625d; font-size:14px; font-weight:600; }
+
+  .pm-bar { position:fixed; left:0; right:0; bottom:0; z-index:20; padding:12px; display:none; }
+  .pm-bar button { max-width:456px; margin:0 auto; width:100%; display:flex; align-items:center; justify-content:space-between; background:#1f7f75; color:#fff; border:0; border-radius:18px; padding:15px 20px; font-family:inherit; font-size:15px; font-weight:800; box-shadow:0 10px 25px rgba(15,60,55,.35); cursor:pointer; }
+
+  .pm-bg { position:fixed; inset:0; z-index:30; background:rgba(10,30,28,.55); display:none; align-items:flex-end; justify-content:center; }
+  .pm-sheet { background:#fff; width:100%; max-width:480px; border-radius:28px 28px 0 0; max-height:92vh; overflow-y:auto; }
+  .pm-dimg { width:100%; aspect-ratio:4/3; object-fit:cover; display:block; border-radius:28px 28px 0 0; background:#eef3f2; }
+  .pm-dbody { padding:18px 20px 22px; }
+  .pm-dname { font-size:22px; font-weight:800; line-height:1.2; }
+  .pm-var { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px 0; border-bottom:1px solid #eef2f1; }
+  .pm-vs { font-size:15px; font-weight:700; }
+  .pm-vp { font-size:14px; font-weight:800; color:#1f7f75; margin-top:1px; }
+  .pm-ctrl { display:flex; align-items:center; gap:10px; }
+  .pm-ctrl b { min-width:18px; text-align:center; font-size:15px; }
+  .pm-b { width:34px; height:34px; border-radius:10px; border:0; background:#e8f1ef; color:#14201e; font-size:20px; font-weight:800; cursor:pointer; line-height:1; }
+  .pm-b.p { background:#1f7f75; color:#fff; }
+  .pm-add { padding:8px 18px; border-radius:10px; border:1px solid #b9d8d3; background:#eef7f5; color:#1f7f75; font-weight:800; font-size:13px; cursor:pointer; font-family:inherit; }
+  .pm-primary { width:100%; margin-top:16px; background:#1f7f75; color:#fff; border:0; border-radius:16px; padding:14px; font-size:15px; font-weight:800; font-family:inherit; cursor:pointer; }
+  .pm-input { width:100%; padding:11px 13px; border:1px solid #d6e2e0; border-radius:12px; font-size:16px; font-family:inherit; outline:0; }
+  .pm-err { display:none; text-align:center; font-size:12px; font-weight:700; color:#e5533d; margin-top:8px; }
+  .pm-x { background:none; border:0; font-size:28px; color:#8a9a97; cursor:pointer; line-height:1; }
+</style>
+
+<script>
+(function () {
+  const QR_FIREBASE = {
+    apiKey: "AIzaSyDVysBJIQTxXDfs533SkAQvQ0HMsty2OiU",
+    authDomain: "restaurant-website-test.firebaseapp.com",
+    projectId: "restaurant-website-test",
+    storageBucket: "restaurant-website-test.firebasestorage.app",
+    messagingSenderId: "837789642324",
+    appId: "1:837789642324:web:d9a32bfb793f6427f4c7c1"
+  };
+  const isCustomer = (typeof TQ_TABLE !== 'undefined' && TQ_TABLE !== null);
+  if (isCustomer) customerPhotoMenu(); else posSidePhoto();
+
+  /* =====================================================================
+     1) POS SIDE: dish-e photo / prep time / rating dewar option
+     ===================================================================== */
+  function posSidePhoto() {
+    let tmpImg = '';
+    const $ = id => document.getElementById(id);
+    const form = document.querySelector('#product-modal form');
+    if (!form) return;
+    const anchor = form.querySelector('.p-3.bg-slate-50'); // Portions section
+    const box = document.createElement('div');
+    box.className = 'p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2';
+    box.innerHTML = `
+      <div class="font-bold text-slate-800">📷 Dish Photo (QR menu-te dekhabe)</div>
+      <div class="flex items-center gap-3">
+        <img id="pm-img-prev" class="w-24 h-[72px] object-cover rounded-lg border border-slate-200 bg-white hidden" alt="">
+        <div class="flex flex-col gap-1.5">
+          <label class="px-3 py-2 rd-btn-outline cursor-pointer text-center">Upload Photo
+            <input type="file" accept="image/*" id="pm-img-file" class="hidden">
+          </label>
+          <button type="button" id="pm-img-del" class="text-rose-600 font-bold text-left">Remove photo</button>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div><label class="block font-semibold text-slate-700 mb-1">Prep Time (min)</label>
+          <input type="number" id="pm-prep" min="0" placeholder="e.g. 20" class="w-full px-3 py-2 border border-slate-300 rounded-xl"></div>
+        <div><label class="block font-semibold text-slate-700 mb-1">Rating (0-5)</label>
+          <input type="number" id="pm-rating" min="0" max="5" step="0.1" placeholder="e.g. 4.8" class="w-full px-3 py-2 border border-slate-300 rounded-xl"></div>
+      </div>`;
+    form.insertBefore(box, anchor);
+
+    function setFields(img, prep, rating) {
+      tmpImg = img || '';
+      const pv = $('pm-img-prev');
+      pv.src = tmpImg || 'data:,';
+      pv.classList.toggle('hidden', !tmpImg);
+      $('pm-prep').value = prep || '';
+      $('pm-rating').value = rating || '';
+    }
+
+    $('pm-img-del').onclick = () => setFields('', $('pm-prep').value, $('pm-rating').value);
+    $('pm-img-file').onchange = e => {
+      const f = e.target.files[0];
+      if (!f) return;
+      const rd = new FileReader();
+      rd.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          // 4:3 center-crop, chhoto kore compress (storage bachate)
+          const W = 440, H = 330, c = document.createElement('canvas');
+          c.width = W; c.height = H;
+          const x = c.getContext('2d');
+          x.fillStyle = '#fff'; x.fillRect(0, 0, W, H);
+          const r = Math.max(W / img.width, H / img.height);
+          const dw = img.width * r, dh = img.height * r;
+          x.drawImage(img, (W - dw) / 2, (H - dh) / 2, dw, dh);
+          tmpImg = c.toDataURL('image/jpeg', 0.7);
+          const pv = $('pm-img-prev'); pv.src = tmpImg; pv.classList.remove('hidden');
+        };
+        img.onerror = () => showToast('Could not read this image', 'error');
+        img.src = rd.result;
+      };
+      rd.readAsDataURL(f);
+      e.target.value = '';
+    };
+
+    const oAdd = window.openAddProductModal;
+    window.openAddProductModal = function () { oAdd.apply(this, arguments); setFields('', '', ''); };
+
+    const oEdit = window.editProduct;
+    window.editProduct = function (id) {
+      oEdit.apply(this, arguments);
+      const p = menuItems.find(x => x.id === id);
+      if (p) setFields(p.img, p.prep, p.rating);
+    };
+
+    const oSub = window.handleProductFormSubmit;
+    window.handleProductFormSubmit = function (e) {
+      const id = $('form-prod-id').value;
+      const before = menuItems.length;
+      oSub.apply(this, arguments);
+      let p = null;
+      if (id) p = menuItems.find(x => x.id === id);
+      else if (menuItems.length > before) p = menuItems[0];
+      if (!p) return; // validation fail hole kichu hoyni
+      p.img = tmpImg || '';
+      p.prep = Number($('pm-prep').value) || 0;
+      p.rating = Math.min(5, Math.max(0, Number($('pm-rating').value) || 0));
+      saveLS(K_MENU, menuItems);
+    };
+
+    // menu.json-e photo, prep, rating jog hobe (buyPrice ager moto jabe na)
+    window.tqDownloadMenu = function () {
+      const data = {
+        name: shopConfig.name, tagline: shopConfig.tagline, address: shopConfig.address, phone: shopConfig.phone,
+        logo: shopConfig.logo || '', categories: shopConfig.categories,
+        menu: menuItems.map(p => ({
+          name: p.name, category: p.category, img: p.img || '', prep: p.prep || 0, rating: p.rating || 0,
+          variants: p.variants.map(v => ({ size: v.size, price: v.price, on: v.on !== false }))
+        }))
+      };
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: 'application/json' }));
+      a.download = 'menu.json';
+      a.click();
+      showToast('menu.json downloaded (photo shoho). index.html er pashe upload korun', 'success');
+    };
+  }
+
+  /* =====================================================================
+     2) CUSTOMER SIDE: QR scan korle photo wala menu
+     ===================================================================== */
+  async function customerPhotoMenu() {
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+    let n = 0;
+    while (!document.getElementById('qo-list') && n++ < 150) await sleep(100);
+    const old = document.getElementById('customer-menu');
+    if (!old) return;
+    const root = old.cloneNode(false);          // purono listener gula bad
+    root.className = 'pm';
+    old.replaceWith(root);
+
+    const table = String(TQ_TABLE || '').trim().slice(0, 30);
+    let d = null;
+    try { const r = await fetch('menu.json?t=' + Date.now(), { cache: 'no-store' }); if (r.ok) d = await r.json(); } catch (e) {}
+    if (!d) d = { name: shopConfig.name, tagline: shopConfig.tagline, address: shopConfig.address, phone: shopConfig.phone, logo: shopConfig.logo || '', categories: shopConfig.categories, menu: menuItems };
+    document.title = d.name + ' - Menu';
+
+    const st = { cat: 'all', q: '', open: null, cartOpen: false, name: '' };
+    const cart = {};
+    const fmt = v => Math.round(Number(v) || 0).toLocaleString('en-US');
+    const totals = () => Object.values(cart).reduce((a, i) => ({ q: a.q + i.qty, t: a.t + i.qty * i.price }), { q: 0, t: 0 });
+    const $ = id => document.getElementById(id);
+
+    const CLOCK = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+    const STAR = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg>';
+    const BASKET = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h18l-1.8 10.2a1.5 1.5 0 0 1-1.5 1.3H6.3a1.5 1.5 0 0 1-1.5-1.3z"/><path d="M8 9l2.5-5M16 9l-2.5-5"/></svg>';
+    const SEARCH = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>';
+
+    root.innerHTML = `
+      <div class="pm-wrap">
+        <div id="pm-main">
+          <div class="pm-head">
+            <div class="pm-row">
+              <div><h1 class="pm-title">Menu</h1><div class="pm-sub">${esc(d.name)} • ${esc(table || 'Table ?')}</div></div>
+              <button class="pm-basket" data-a="openCart" aria-label="Order">${BASKET}<span id="pm-badge" class="pm-badge">0</span></button>
+            </div>
+            <div class="pm-search">${SEARCH}<input id="pm-q" type="text" placeholder="Search"></div>
+          </div>
+          <div class="pm-body">
+            <div id="pm-tabs" class="pm-tabs"></div>
+            <div id="pm-grid" class="pm-grid"></div>
+            <div class="pm-foot">${esc(d.address || '')} ${d.phone ? '• ' + esc(d.phone) : ''}</div>
+          </div>
+        </div>
+        <div id="pm-done" style="display:none;padding:24px 16px"></div>
+        <div id="pm-bar" class="pm-bar"><button data-a="openCart"><span id="pm-bar-q">0 items</span><span>View Order →</span><span id="pm-bar-t">৳ 0</span></button></div>
+        <div id="pm-detail" class="pm-bg" data-a="bg"></div>
+        <div id="pm-cart" class="pm-bg" data-a="bg"></div>
+      </div>`;
+
+    const minPrice = p => { const a = p.variants.filter(v => v.on !== false).map(v => Number(v.price) || 0); return a.length ? Math.min(...a) : 0; };
+    const onCount = p => p.variants.filter(v => v.on !== false).length;
+    const meta = p => {
+      const prep = Number(p.prep) || 0, rt = Number(p.rating) || 0;
+      return (prep > 0 ? `<span class="pm-m pm-t">${CLOCK} ${prep} min</span>` : '') + (rt > 0 ? `<span class="pm-m pm-r">${STAR} ${rt.toFixed(1)}</span>` : '');
+    };
+    const dishQty = pi => Object.entries(cart).filter(([k]) => k.split('|')[0] === String(pi)).reduce((a, [, i]) => a + i.qty, 0);
+    const ctrl = k => cart[k]
+      ? `<div class="pm-ctrl"><button class="pm-b" data-a="dec" data-k="${k}">−</button><b>${cart[k].qty}</b><button class="pm-b p" data-a="inc" data-k="${k}">+</button></div>`
+      : `<button class="pm-add" data-a="inc" data-k="${k}">Add</button>`;
+
+    function drawTabs() {
+      const cats = ['all', ...(d.categories || [])];
+      $('pm-tabs').innerHTML = cats.map(c => `<button class="pm-tab ${st.cat === c ? 'on' : ''}" data-a="cat" data-c="${esc(c)}">${c === 'all' ? 'All' : esc(c)}</button>`).join('');
+    }
+
+    function drawGrid() {
+      const cards = [];
+      d.menu.forEach((p, pi) => {
+        if (st.cat !== 'all' && p.category !== st.cat) return;
+        if (st.q && !p.name.toLowerCase().includes(st.q) && !String(p.category).toLowerCase().includes(st.q)) return;
+        if (!onCount(p)) return;
+        const q = dishQty(pi);
+        cards.push(`
+          <button class="pm-card" data-a="dish" data-p="${pi}">
+            <div class="pm-imgbox">${p.img ? `<img src="${esc(p.img)}" alt="" loading="lazy">` : '<div class="pm-ph">🍽️</div>'}${q ? `<span class="pm-qty">${q}</span>` : ''}</div>
+            <div class="pm-cb">
+              <div class="pm-name">${esc(p.name)}</div>
+              <div class="pm-meta">${meta(p)}</div>
+              <div class="pm-price">৳ ${fmt(minPrice(p))}${onCount(p) > 1 ? '+' : ''}</div>
+            </div>
+          </button>`);
+      });
+      $('pm-grid').innerHTML = cards.length ? cards.join('') : '<div class="pm-empty">Kono khabar paoa jayni</div>';
+    }
+
+    function drawBar() {
+      const t = totals();
+      $('pm-bar').style.display = t.q ? 'block' : 'none';
+      $('pm-bar-q').textContent = t.q + (t.q === 1 ? ' item' : ' items');
+      $('pm-bar-t').textContent = '৳ ' + fmt(t.t);
+      const bd = $('pm-badge');
+      bd.textContent = t.q; bd.style.display = t.q ? 'flex' : 'none';
+    }
+
+    function drawDetail() {
+      const box = $('pm-detail');
+      if (st.open === null) { box.style.display = 'none'; return; }
+      const p = d.menu[st.open];
+      box.style.display = 'flex';
+      box.innerHTML = `
+        <div class="pm-sheet">
+          ${p.img ? `<img class="pm-dimg" src="${esc(p.img)}" alt="">` : '<div class="pm-dimg pm-ph">🍽️</div>'}
+          <div class="pm-dbody">
+            <div class="pm-dname">${esc(p.name)}</div>
+            <div class="pm-meta">${meta(p)}</div>
+            <div style="margin-top:8px">${p.variants.map((v, vi) => v.on === false ? '' : `
+              <div class="pm-var"><div><div class="pm-vs">${esc(v.size)}</div><div class="pm-vp">৳ ${fmt(v.price)}</div></div>${ctrl(st.open + '|' + vi)}</div>`).join('')}</div>
+            <button class="pm-primary" data-a="closeD">Done</button>
+          </div>
+        </div>`;
+    }
+
+    function drawCart() {
+      const box = $('pm-cart');
+      if (!st.cartOpen) { box.style.display = 'none'; return; }
+      const rows = Object.entries(cart);
+      box.style.display = 'flex';
+      box.innerHTML = `
+        <div class="pm-sheet" style="display:flex;flex-direction:column">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid #eef2f1">
+            <div style="font-size:18px;font-weight:800">Your Order • ${esc(table)}</div>
+            <button class="pm-x" data-a="closeC">×</button>
+          </div>
+          <div style="padding:6px 20px;flex:1;overflow-y:auto">${rows.map(([k, i]) => `
+            <div style="padding:12px 0;border-bottom:1px solid #eef2f1">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+                <div style="min-width:0"><div style="font-weight:700;font-size:14px">${esc(i.name)}</div><div style="font-size:11px;color:#6b7b78">${esc(i.size)} • ৳ ${fmt(i.price)}</div></div>
+                ${ctrl(k)}
+                <div style="width:62px;text-align:right;font-weight:800;font-size:14px">৳ ${fmt(i.price * i.qty)}</div>
+              </div>
+              <input class="pm-input" data-note="${k}" value="${esc(i.note)}" maxlength="60" placeholder="Note (jemon: jhal kom)" style="margin-top:8px;padding:8px 11px;font-size:16px">
+            </div>`).join('') || '<div style="padding:30px 0;text-align:center;color:#8a9a97">Order empty</div>'}</div>
+          <div style="padding:14px 20px 20px;border-top:1px solid #eef2f1">
+            <input id="pm-name" class="pm-input" type="text" maxlength="30" value="${esc(st.name)}" placeholder="Apnar naam (optional)">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin:14px 0 4px"><b>Total</b><b style="font-size:22px;color:#1f7f75">৳ ${fmt(totals().t)}</b></div>
+            <div style="font-size:11px;color:#8a9a97">Final bill restaurant-er dam onujayi hobe. Payment khabar shesh-e counter-e.</div>
+            <button id="pm-place" class="pm-primary" data-a="place">Place Order • অর্ডার করুন</button>
+            <div id="pm-err" class="pm-err"></div>
+          </div>
+        </div>`;
+    }
+
+    function refresh() {
+      drawGrid(); drawBar(); drawDetail();
+      if (st.cartOpen) { if (!Object.keys(cart).length) st.cartOpen = false; drawCart(); }
+    }
+    const showErr = m => { const e = $('pm-err'); if (!e) return; e.textContent = m; e.style.display = m ? 'block' : 'none'; };
+
+    async function place() {
+      showErr('');
+      const lines = Object.values(cart);
+      if (!lines.length) return;
+      if (!table) { showErr('Table number paoa jayni. QR abar scan korun.'); return; }
+      let last = 0;
+      try { last = Number(localStorage.getItem('qo_last')) || 0; } catch (e) {}
+      if (Date.now() - last < 15000) { showErr('Ektu opekkha korun, abar order pathate 15 second lagbe.'); return; }
+
+      const btn = $('pm-place');
+      btn.disabled = true; btn.textContent = 'Sending...';
+      const nm = (st.name || '').trim().slice(0, 30) || 'Guest';
+      const id = 'QR-' + Date.now().toString().slice(-6) + Math.floor(Math.random() * 90 + 10);
+      const kot = {
+        id, time: new Date().toISOString(), orderType: 'Dine-In', table,
+        customerName: nm + ' (QR)',
+        items: lines.map(i => ({
+          key: i.name + '_' + i.size, productId: '', name: i.name, category: i.cat, size: i.size,
+          sku: '', price: i.price, buyPrice: 0, qty: i.qty, note: i.note || '', qr: true
+        }))
+      };
+      try {
+        if (typeof firebase === 'undefined') throw new Error('no firebase');
+        const app = firebase.apps.find(a => a.name === 'qrcust') || firebase.initializeApp(QR_FIREBASE, 'qrcust');
+        try { await app.auth().signInAnonymously(); } catch (e) {}
+        await Promise.race([
+          app.firestore().collection('kots').doc(id).set({ json: JSON.stringify(kot), seq: Date.now() }),
+          new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 15000))
+        ]);
+        try { localStorage.setItem('qo_last', String(Date.now())); } catch (e) {}
+        const t = totals();
+        st.cartOpen = false; st.open = null;
+        drawCart(); drawDetail();
+        $('pm-main').style.display = 'none'; $('pm-bar').style.display = 'none';
+        const dn = $('pm-done'); dn.style.display = 'block';
+        dn.innerHTML = `
+          <div style="background:#fff;border-radius:24px;padding:34px 20px;text-align:center;box-shadow:0 6px 20px rgba(15,60,55,.12)">
+            <div style="font-size:52px">✅</div>
+            <div style="font-size:22px;font-weight:800;margin-top:10px">Order Placed!</div>
+            <div style="font-size:14px;color:#52625f;margin-top:4px">Apnar order kitchen-e pouche gechhe.</div>
+            <div style="margin-top:16px;display:inline-block;padding:8px 16px;background:#eef5f3;border-radius:12px;font-weight:800">${esc(id)} • ${esc(table)}</div>
+            <div style="margin-top:10px;font-size:13px;color:#6b7b78">${t.q} items • ৳ ${fmt(t.t)}</div>
+            <button class="pm-primary" data-a="more" style="margin-top:22px">Aro order korun</button>
+          </div>`;
+        Object.keys(cart).forEach(k => delete cart[k]);
+        st.name = '';
+      } catch (e) {
+        console.error(e);
+        btn.disabled = false; btn.textContent = 'Place Order • অর্ডার করুন';
+        showErr('Order pathano gelo na. Internet check kore abar chesta korun ba waiter-ke bolun.');
+      }
+    }
+
+    root.addEventListener('click', e => {
+      const b = e.target.closest('[data-a]');
+      if (!b) return;
+      const a = b.dataset.a, k = b.dataset.k;
+      if (a === 'bg') { if (e.target === b) { st.open = null; st.cartOpen = false; drawDetail(); drawCart(); } return; }
+      if (a === 'dish') { st.open = Number(b.dataset.p); drawDetail(); }
+      else if (a === 'closeD') { st.open = null; drawDetail(); }
+      else if (a === 'openCart') { if (!Object.keys(cart).length) return; st.cartOpen = true; st.open = null; drawDetail(); drawCart(); }
+      else if (a === 'closeC') { st.cartOpen = false; drawCart(); }
+      else if (a === 'inc') {
+        const [pi, vi] = k.split('|').map(Number);
+        const p = d.menu[pi], v = p && p.variants[vi];
+        if (!v || v.on === false) return;
+        if (!cart[k]) {
+          if (Object.keys(cart).length >= 40) return;
+          cart[k] = { name: p.name, size: v.size, price: Number(v.price) || 0, qty: 0, cat: p.category, note: '' };
+        }
+        if (cart[k].qty < 20) cart[k].qty++;
+        refresh();
+      } else if (a === 'dec') {
+        if (cart[k]) { cart[k].qty--; if (cart[k].qty <= 0) delete cart[k]; }
+        refresh();
+      } else if (a === 'cat') { st.cat = b.dataset.c; drawTabs(); drawGrid(); }
+      else if (a === 'place') place();
+      else if (a === 'more') {
+        $('pm-done').style.display = 'none'; $('pm-main').style.display = 'block';
+        refresh(); window.scrollTo(0, 0);
+      }
+    });
+
+    root.addEventListener('input', e => {
+      const t = e.target;
+      if (t.id === 'pm-q') { st.q = t.value.toLowerCase().trim(); drawGrid(); }
+      else if (t.id === 'pm-name') st.name = t.value;
+      else if (t.dataset && t.dataset.note !== undefined && cart[t.dataset.note]) cart[t.dataset.note].note = t.value.trim().slice(0, 60);
+    });
+
+    drawTabs(); drawGrid(); drawBar();
+  }
+})();
 </script>
+<!-- =================== END PHOTO MENU ADDON =================== -->
+
 <!-- =================== END QR CUSTOMER ORDER ADDON =================== -->
 </body>
 </html>
