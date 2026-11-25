@@ -1,0 +1,3012 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DineFlow - Restaurant POS, Table Management & Cloud Reports</title>
+  <link id="app-favicon" rel="icon" href="data:,">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- JsBarcode -->
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+  <!-- html2pdf.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <!-- SheetJS for Bulk Excel Upload -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <!-- SheetJS FIREBASE -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+   <!-- SheetJS for make qr -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <style>
+    :root {
+      --pb: #e11d2e;
+      --pbd: #bf1625;
+      --pbl: #fdeced;
+      --pbs: #12141a;
+      --pbl2: #232733;
+      --ink: #101828;
+      --mut: #667085;
+      --line: #e6e8ec;
+    }
+    html, body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: #f6f7f9;
+      color: var(--ink);
+      font-variant-numeric: tabular-nums;
+      max-width: 100%;
+      overflow-x: hidden;
+    }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+
+    /* Logo */
+    .brand-logo { object-fit: contain; background: #fff; border-radius: 12px; display: block; }
+
+    /* Sidebar Styling */
+    .pb-aside { width: 15.5rem; background: var(--pbs); color: #fff; }
+    .pb-it, .pb-kid {
+      width: 100%; border: 0; background: transparent; color: #d5d9e2;
+      text-align: left; cursor: pointer; border-radius: 8px; font-size: 0.875rem;
+      font-weight: 500; transition: all 0.15s;
+    }
+    .pb-it { display: flex; align-items: center; gap: 0.75rem; padding: 0.65rem 0.85rem; }
+    .pb-it:hover, .pb-kid:hover { background: var(--pbl2); color: #fff; }
+    .pb-it.on, .pb-kid.on {
+      background: rgba(255, 255, 255, 0.08); color: #fff;
+      box-shadow: inset 3px 0 0 var(--pb); font-weight: 600;
+    }
+    .pb-gb .pb-ch { margin-left: auto; transition: transform 0.15s; width: 0.9rem; height: 0.9rem; }
+    .pb-g.open > .pb-gb .pb-ch { transform: rotate(90deg); }
+    .pb-kids { display: none; padding: 0.25rem 0 0.25rem 0.5rem; }
+    .pb-g.open > .pb-kids { display: block; }
+    .pb-kid { display: block; padding: 0.5rem 0.85rem 0.5rem 2.35rem; font-size: 0.83rem; color: #9aa3b5; }
+
+    /* Cards & Tables */
+    .rd-card { background: #fff; border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 1px 2px rgba(16,24,40,0.04); }
+    .rd-btn-primary { background: var(--pb); color: #fff; font-weight: 600; border-radius: 8px; transition: 0.15s; }
+    .rd-btn-primary:hover { background: var(--pbd); }
+    .rd-btn-outline { background: #fff; border: 1px solid #d0d5dd; color: var(--ink); font-weight: 600; border-radius: 8px; transition: 0.15s; }
+    .rd-btn-outline:hover { background: #f9fafb; }
+
+    /* Print & Receipt Styling */
+    @media screen {
+      .print-preview-container {
+        display: flex; justify-content: center; background: #334155;
+        padding: 1.5rem; border-radius: 12px; overflow: auto; max-height: 70vh;
+      }
+      .paper-80mm { width: 80mm; min-height: 110mm; background: #fff; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+      .paper-58mm { width: 58mm; min-height: 95mm; background: #fff; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+      .paper-a4   { width: 210mm; min-height: 297mm; background: #fff; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+      #isolated-print-mount { display: none; }
+    }
+
+    .rdm { font-family: Arial, Helvetica, sans-serif; color: #000; font-size: 12px; line-height: 1.3; font-weight: 600; box-sizing: border-box; }
+    .rdm.w58 { font-size: 10.5px; }
+    .rdm.big { font-size: 13px; padding: 12px; }
+    .rdm h1 { font-size: 16px; font-weight: 800; text-align: center; margin: 0; }
+    .rdm.big h1 { font-size: 22px; text-align: left; }
+    .rdm .c { text-align: center; }
+    .rdm .sep { border-top: 1px dashed #000; margin: 5px 0; }
+    .rdm .r { display: flex; justify-content: space-between; gap: 6px; }
+    .rdm .r.t { font-size: 1.15em; font-weight: 800; border-top: 1px solid #000; padding-top: 3px; margin-top: 3px; }
+    .rdm table { width: 100%; border-collapse: collapse; }
+    .rdm th { text-align: left; border-bottom: 1px solid #000; padding: 2px 0; font-weight: 800; }
+    .rdm td { padding: 2px 0; vertical-align: top; }
+    .rdm .n { text-align: right; white-space: nowrap; padding-left: 4px; }
+    .rdm .sm { font-size: 0.85em; font-weight: 600; }
+    .rdm .bc { display: block; margin: 6px auto 0; shape-rendering: crispEdges; }
+    .rdm .logo-img { display: block; margin: 0 auto 4px; height: 46px; width: auto; max-width: 100%; object-fit: contain; filter: grayscale(1) contrast(1.5); background: transparent; }
+    .rdm.big .logo-img { margin: 0 0 6px; height: 70px; }
+
+    @media print {
+      html, body { display: block !important; height: auto !important; background: #fff !important; margin: 0 !important; padding: 0 !important; }
+      body > *:not(#isolated-print-mount) { display: none !important; visibility: hidden !important; }
+      #isolated-print-mount { display: block !important; visibility: visible !important; margin: 0 auto !important; padding: 0 2mm !important; }
+      #isolated-print-mount * { visibility: visible !important; color: #000 !important; font-weight: 700 !important; border-color: #000 !important; }
+      .no-print { display: none !important; }
+    }
+
+    /* ===== Responsive sidebar: PC = collapse, Tablet/Mobile = drawer ===== */
+    #pb-sidebar { transition: transform .25s ease; }
+    #sb-backdrop { display: none; position: fixed; inset: 0; background: rgba(15,23,42,.55); z-index: 55; }
+
+    @media (min-width: 1024px) {
+      body.sb-collapsed #pb-sidebar { display: none; }
+    }
+    @media (max-width: 1023px) {
+      #pb-sidebar {
+        position: fixed; top: 0; left: 0; bottom: 0; height: 100dvh;
+        width: 15.5rem; max-width: 85vw; z-index: 60;
+        transform: translateX(-100%);
+      }
+      body.sb-open #pb-sidebar { transform: translateX(0); box-shadow: 8px 0 30px rgba(0,0,0,.35); }
+      body.sb-open #sb-backdrop { display: block; }
+    }
+    @media (max-width: 767px) {
+      #pb-topbar { display: none !important; }
+      #mobile-nav { display: flex !important; }
+      input, select, textarea { font-size: 16px !important; }
+    }
+  </style>
+</head>
+<body class="h-full flex flex-col md:flex-row antialiased selection:bg-rose-600 selection:text-white">
+
+  <!-- ==================== LOGIN SCREEN ==================== -->
+  <div id="login-screen" class="fixed inset-0 z-[100] bg-[#12141a] flex items-center justify-center p-4 no-print">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-7">
+      <div class="flex flex-col items-center text-center mb-6">
+        <div class="w-16 h-16 rounded-2xl overflow-hidden shadow-lg mb-3">
+          <img id="login-logo" class="brand-logo w-16 h-16" alt="logo">
+        </div>
+        <h1 id="login-shop-name" class="text-xl font-bold text-slate-900">Spice & Flame Kitchen</h1>
+        <p class="text-xs text-slate-500 mt-1">Restaurant POS, KOT & Cloud Management</p>
+      </div>
+
+      <form onsubmit="handleLoginSubmit(event)" class="space-y-4 text-sm">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Email / Staff ID</label>
+          <input type="email" id="login-email" required value="admin@restaurant.com" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:border-rose-600">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Password</label>
+          <input type="password" id="login-password" required value="123456" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:border-rose-600">
+        </div>
+        <button type="submit" class="w-full py-2.5 rd-btn-primary text-sm flex items-center justify-center gap-2 shadow-md">
+          <i data-lucide="log-in" class="w-4 h-4"></i> Sign In to POS
+        </button>
+        <p id="login-hint" class="text-[11px] text-center text-slate-400">Default: admin@restaurant.com / 123456 (change it in Settings)</p>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== DESKTOP SIDEBAR ==================== -->
+  <div id="sb-backdrop" onclick="closeSidebarMobile()" class="no-print"></div>
+  <aside id="pb-sidebar" class="pb-aside shrink-0 h-screen flex flex-col no-print overflow-y-auto">
+    <div class="p-4 border-b border-[#232733]">
+      <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('pos')">
+        <div id="sidebar-logo-box" class="w-11 h-11 shrink-0 rounded-xl overflow-hidden">
+          <img id="sidebar-logo" class="brand-logo w-11 h-11" alt="logo">
+        </div>
+        <div class="min-w-0">
+          <h1 id="topbar-store-name" class="text-base font-bold text-white leading-tight truncate">Spice & Flame Kitchen</h1>
+          <p id="topbar-store-tagline" class="text-[11px] text-slate-400 truncate">Dine-In, Takeaway & KOT</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-1.5 mt-3">
+        <span id="active-printer-badge" class="text-[10px] font-semibold bg-[#232733] text-slate-300 px-2 py-0.5 rounded-full">80mm Printer</span>
+        <span id="cloud-status-badge" class="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Local Sync Ready
+        </span>
+      </div>
+    </div>
+
+    <!-- Navigation Menu -->
+    <div id="pb-menu" class="p-3 flex flex-col gap-1 flex-1">
+      <button type="button" class="pb-it" data-t="dashboard" onclick="switchTab('dashboard')">
+        <i data-lucide="layout-dashboard" class="w-4 h-4"></i><span>Dashboard</span>
+      </button>
+
+      <div class="pb-g open">
+        <button type="button" class="pb-it pb-gb" onclick="this.parentElement.classList.toggle('open')">
+          <i data-lucide="shopping-cart" class="w-4 h-4"></i><span>Orders & POS</span>
+          <i data-lucide="chevron-right" class="pb-ch"></i>
+        </button>
+        <div class="pb-kids">
+          <button type="button" class="pb-kid on" data-t="pos" onclick="switchTab('pos')">POS Counter & Tables</button>
+          <button type="button" class="pb-kid" data-t="kot" onclick="switchTab('kot')">Kitchen Display (KOT)</button>
+          <button type="button" class="pb-kid" data-t="reports" onclick="switchTab('reports')">Sales & Order History</button>
+          <button type="button" class="pb-kid" onclick="openReturnModal()">Refund / Void Order</button>
+        </div>
+      </div>
+
+      <div class="pb-g">
+        <button type="button" class="pb-it pb-gb" onclick="this.parentElement.classList.toggle('open')">
+          <i data-lucide="utensils-crossed" class="w-4 h-4"></i><span>Menu & Recipes</span>
+          <i data-lucide="chevron-right" class="pb-ch"></i>
+        </button>
+        <div class="pb-kids">
+          <button type="button" class="pb-kid" data-t="menu" onclick="switchTab('menu')">Menu Items & Portions</button>
+          <button type="button" class="pb-kid" onclick="openAddProductModal()">+ Add New Dish</button>
+          <button type="button" class="pb-kid" onclick="openBulkUpload()">Bulk Upload (Excel)</button>
+          <button type="button" class="pb-kid" data-t="categories" onclick="switchTab('categories')">Menu Categories</button>
+        </div>
+      </div>
+
+      <button type="button" class="pb-it" data-t="customers" onclick="switchTab('customers')">
+        <i data-lucide="users" class="w-4 h-4"></i><span>Customers</span>
+      </button>
+
+      <button type="button" class="pb-it" data-t="due" onclick="openDueModal()">
+        <i data-lucide="book-open" class="w-4 h-4"></i><span>Credit / Due Book</span>
+      </button>
+
+      <div class="pb-g">
+        <button type="button" class="pb-it pb-gb" onclick="this.parentElement.classList.toggle('open')">
+          <i data-lucide="wallet" class="w-4 h-4"></i><span>Expenses & Accounts</span>
+          <i data-lucide="chevron-right" class="pb-ch"></i>
+        </button>
+        <div class="pb-kids">
+          <button type="button" class="pb-kid" data-t="finance" onclick="switchTab('finance')">Profit & Loss Summary</button>
+          <button type="button" class="pb-kid" data-t="expenses" onclick="switchTab('expenses')">Daily Expenses (Bazar)</button>
+          <button type="button" class="pb-kid" data-t="suppliers" onclick="switchTab('suppliers')">Suppliers & Stock In</button>
+        </div>
+      </div>
+
+      <button type="button" class="pb-it" data-t="rc" onclick="switchTab('rc')">
+        <i data-lucide="file-bar-chart" class="w-4 h-4"></i><span>Report Center</span>
+      </button>
+
+      <button type="button" class="pb-it" data-t="tables" onclick="switchTab('tables')">
+        <i data-lucide="grid" class="w-4 h-4"></i><span>Table Setup</span>
+      </button>
+
+      <button type="button" class="pb-it" onclick="openSettingsModal()">
+        <i data-lucide="settings" class="w-4 h-4"></i><span>Restaurant Settings</span>
+      </button>
+    </div>
+
+    <!-- Bottom Quick Actions -->
+    <div class="p-3 border-t border-[#232733] space-y-2">
+      <button onclick="openAddProductModal()" class="w-full py-2.5 rd-btn-primary text-xs flex items-center justify-center gap-1.5">
+        <i data-lucide="plus" class="w-4 h-4"></i> Add New Dish
+      </button>
+      <div class="flex items-center justify-between bg-[#232733] p-2 rounded-xl">
+        <div class="flex items-center gap-2 min-w-0">
+          <div class="w-7 h-7 rounded-full bg-rose-900/60 text-rose-200 flex items-center justify-center font-bold text-xs">A</div>
+          <span id="sidebar-user-email" class="text-xs text-slate-300 truncate">admin@restaurant.com</span>
+        </div>
+        <button onclick="handleLogout()" title="Logout" class="p-1.5 text-rose-400 hover:bg-rose-950 rounded-lg">
+          <i data-lucide="log-out" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ==================== MAIN CONTENT WRAPPER ==================== -->
+  <div class="flex-1 min-w-0 flex flex-col md:h-screen">
+
+    <!-- Desktop Topbar -->
+    <header id="pb-topbar" class="hidden md:flex h-14 bg-white border-b border-slate-200 items-center justify-between px-5 no-print shrink-0">
+      <div class="flex items-center gap-3">
+        <button onclick="toggleSidebar()" title="Menu hide / show" class="p-1.5 hover:bg-slate-100 rounded-lg text-slate-700">
+          <i data-lucide="menu" class="w-5 h-5"></i>
+        </button>
+        <span class="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">F2: Search Dish • F9: Checkout & Print</span>
+      </div>
+      <div class="flex items-center gap-4">
+        <button onclick="switchTab('kot')" class="relative px-3 py-1.5 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg text-xs font-bold flex items-center gap-1.5 hover:bg-amber-100">
+          <i data-lucide="flame" class="w-4 h-4 text-amber-600"></i> Active KOTs
+          <span id="topbar-kot-count" class="bg-amber-600 text-white px-1.5 py-0.2 rounded-full text-[10px]">0</span>
+        </button>
+        <div class="text-right">
+          <div class="text-[11px] text-slate-400">Cashier</div>
+          <div class="text-xs font-bold text-slate-800">Admin</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Mobile Topbar -->
+    <header class="md:hidden bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between sticky top-0 z-30 no-print">
+      <div class="flex items-center gap-2.5">
+        <button onclick="toggleSidebar()" class="p-2 -ml-1 mr-1 border border-slate-200 rounded-lg text-slate-700">
+          <i data-lucide="menu" class="w-4 h-4"></i>
+        </button>
+        <div class="w-9 h-9 rounded-xl overflow-hidden">
+          <img id="mobile-logo" class="brand-logo w-9 h-9" alt="logo">
+        </div>
+        <div>
+          <h1 id="mobile-store-name" class="text-sm font-bold text-slate-900 leading-tight">Spice & Flame Kitchen</h1>
+          <span class="text-[11px] text-slate-500">Restaurant POS</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <button onclick="switchTab('kot')" class="px-2.5 py-1.5 bg-amber-100 text-amber-800 rounded-lg text-xs font-bold">KOT (<span id="mob-kot-count">0</span>)</button>
+        <button onclick="openSettingsModal()" class="p-2 border border-slate-200 rounded-lg text-slate-600"><i data-lucide="settings" class="w-4 h-4"></i></button>
+      </div>
+    </header>
+
+    <!-- ==================== VIEWPORT AREA ==================== -->
+    <main class="flex-1 overflow-y-auto pb-20 md:pb-4">
+
+      <!-- 1. POS COUNTER & TABLE BILLING -->
+      <div id="view-pos" class="max-w-7xl mx-auto p-2 sm:p-4 h-auto lg:h-[calc(100vh-3.75rem)] flex flex-col">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 flex-1 overflow-hidden">
+
+          <!-- Left: Menu Grid (7 Cols) -->
+          <div class="lg:col-span-7 flex flex-col rd-card overflow-hidden min-h-[450px] max-h-[75vh] lg:max-h-none">
+            <!-- Search & Table Bar -->
+            <div class="p-3 bg-slate-50 border-b border-slate-200 space-y-2.5">
+              <div class="flex flex-wrap gap-2">
+                <div class="relative flex-1 min-w-[200px]">
+                  <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-400"></i>
+                  <input type="text" id="pos-search-input" oninput="renderPosCatalog()" placeholder="Search dish name, code or category..." class="w-full pl-9 pr-3 py-2 text-xs sm:text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:border-rose-600">
+                </div>
+                <button onclick="document.getElementById('pos-search-input').value=''; renderPosCatalog();" class="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-semibold">Reset</button>
+              </div>
+
+              <!-- Category Filter Pills -->
+              <div class="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs" id="pos-category-pills"></div>
+            </div>
+
+            <!-- Dishes Grid -->
+            <div class="flex-1 overflow-y-auto p-3">
+              <div id="pos-grid" class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2.5"></div>
+              <div id="pos-no-items" class="hidden py-16 text-center text-slate-400">
+                <i data-lucide="utensils-crossed" class="w-10 h-10 mx-auto stroke-1 mb-2 text-slate-300"></i>
+                <p class="text-sm font-medium">No dishes found!</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Order Cart, Table & Checkout (5 Cols) -->
+          <div class="lg:col-span-5 flex flex-col rd-card overflow-hidden">
+            <!-- Order Type & Table Selector -->
+            <div class="p-3 bg-slate-50 border-b border-slate-200 space-y-2">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <i data-lucide="receipt" class="w-4 h-4 text-rose-600"></i>
+                  <h3 class="font-bold text-slate-800 text-sm">Current Order</h3>
+                  <span id="cart-item-count" class="bg-rose-100 text-rose-800 text-[11px] font-bold px-2 py-0.5 rounded-full">0 items</span>
+                </div>
+                <button onclick="clearCart()" class="text-xs text-rose-600 hover:underline font-semibold flex items-center gap-1">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Clear
+                </button>
+              </div>
+
+              <!-- Order Mode Radios -->
+              <div class="grid grid-cols-3 gap-1.5 text-xs">
+                <label class="flex items-center justify-center py-1.5 px-2 rounded-lg border border-slate-200 bg-white cursor-pointer font-bold has-[:checked]:bg-rose-50 has-[:checked]:border-rose-600 has-[:checked]:text-rose-700">
+                  <input type="radio" name="order-type" value="Dine-In" checked class="hidden" onchange="onOrderTypeChange()"> 🍽️ Dine-In
+                </label>
+                <label class="flex items-center justify-center py-1.5 px-2 rounded-lg border border-slate-200 bg-white cursor-pointer font-bold has-[:checked]:bg-rose-50 has-[:checked]:border-rose-600 has-[:checked]:text-rose-700">
+                  <input type="radio" name="order-type" value="Takeaway" class="hidden" onchange="onOrderTypeChange()"> 🛍️ Takeaway
+                </label>
+                <label class="flex items-center justify-center py-1.5 px-2 rounded-lg border border-slate-200 bg-white cursor-pointer font-bold has-[:checked]:bg-rose-50 has-[:checked]:border-rose-600 has-[:checked]:text-rose-700">
+                  <input type="radio" name="order-type" value="Delivery" class="hidden" onchange="onOrderTypeChange()"> 🛵 Delivery
+                </label>
+              </div>
+
+              <!-- Table & Customer Row -->
+              <div class="grid grid-cols-3 gap-2 text-xs">
+                <div id="table-select-wrap">
+                  <label class="block text-slate-500 text-[10px] font-semibold mb-0.5">Table No.</label>
+                  <select id="cart-table-select" onchange="onTableSelectChange()" class="w-full px-2 py-1.5 bg-white border border-slate-300 rounded-lg font-bold text-slate-800 focus:outline-none"></select>
+                </div>
+                <div>
+                  <label class="block text-slate-500 text-[10px] font-semibold mb-0.5">Customer Name</label>
+                  <input type="text" id="cart-cust-name" placeholder="Walk-in Guest" class="w-full px-2 py-1.5 bg-white border border-slate-300 rounded-lg focus:outline-none">
+                </div>
+                <div>
+                  <label class="block text-slate-500 text-[10px] font-semibold mb-0.5">Mobile No.</label>
+                  <input type="text" id="cart-cust-phone" placeholder="017xxxxxxxx" class="w-full px-2 py-1.5 bg-white border border-slate-300 rounded-lg focus:outline-none">
+                </div>
+              </div>
+            </div>
+
+            <!-- Cart Items List -->
+            <div id="cart-items-container" class="flex-1 overflow-y-auto p-3 space-y-2 divide-y divide-slate-100 min-h-[160px]"></div>
+
+            <!-- Totals & Checkout Footer -->
+            <div class="p-3 bg-slate-50 border-t border-slate-200 text-xs space-y-2">
+              <div class="flex justify-between text-slate-600">
+                <span>Subtotal:</span>
+                <span id="pos-subtotal" class="font-bold text-slate-800">৳ 0</span>
+              </div>
+
+              <div class="grid grid-cols-3 gap-1.5">
+                <div class="flex items-center gap-1 bg-white px-2 py-1 border border-slate-300 rounded-lg">
+                  <span class="text-slate-500 text-[10px]">Disc:</span>
+                  <input type="number" id="pos-discount" value="0" min="0" oninput="updateCartTotals()" class="w-full text-right font-bold text-slate-800 focus:outline-none">
+                  <select id="pos-discount-mode" onchange="updateCartTotals()" class="bg-transparent text-[10px] font-bold text-slate-600">
+                    <option value="flat">৳</option>
+                    <option value="percent">%</option>
+                  </select>
+                </div>
+                <div class="flex items-center gap-1 bg-white px-2 py-1 border border-slate-300 rounded-lg">
+                  <span class="text-slate-500 text-[10px]">VAT:</span>
+                  <input type="number" id="pos-tax" value="0" min="0" max="25" oninput="updateCartTotals()" class="w-full text-right font-bold text-slate-800 focus:outline-none">
+                  <span class="text-slate-400 text-[10px]">%</span>
+                </div>
+                <div class="flex items-center gap-1 bg-white px-2 py-1 border border-slate-300 rounded-lg">
+                  <span class="text-slate-500 text-[10px]">S.Chg:</span>
+                  <input type="number" id="pos-service" value="0" min="0" oninput="updateCartTotals()" class="w-full text-right font-bold text-slate-800 focus:outline-none">
+                  <span class="text-slate-400 text-[10px]">৳</span>
+                </div>
+              </div>
+
+              <div class="flex justify-between items-baseline pt-1 border-t border-slate-200">
+                <span class="text-sm font-bold text-slate-900">Grand Total:</span>
+                <span id="pos-grand-total" class="text-xl font-extrabold text-rose-600">৳ 0</span>
+              </div>
+
+              <!-- Paid & Change -->
+              <div class="grid grid-cols-2 gap-2 bg-emerald-50/70 p-2 rounded-xl border border-emerald-200">
+                <div>
+                  <label class="block text-[10px] font-bold text-emerald-900 mb-0.5">Paid Amount:</label>
+                  <div class="flex items-center bg-white border border-emerald-300 rounded-lg px-2 py-1">
+                    <span class="text-xs font-bold text-slate-400">৳</span>
+                    <input type="number" id="pos-paid-amount" oninput="paidManuallyEdited=true; calculateChange()" placeholder="0" class="w-full text-right font-bold text-emerald-800 text-sm focus:outline-none">
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-[10px] font-bold text-slate-600 mb-0.5">Change Due:</label>
+                  <div class="flex items-center bg-slate-100 border border-slate-200 rounded-lg px-2 py-1">
+                    <span class="text-xs font-bold text-slate-400">৳</span>
+                    <span id="pos-change-due" class="w-full text-right font-bold text-slate-800 text-sm">0</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Payment Method -->
+              <div class="grid grid-cols-5 gap-1">
+                <label class="flex items-center justify-center py-1.5 rounded-lg border border-slate-200 bg-white cursor-pointer text-[11px] font-bold has-[:checked]:bg-rose-50 has-[:checked]:border-rose-600 has-[:checked]:text-rose-700">
+                  <input type="radio" name="pay-method" value="Cash" checked class="hidden" onchange="paidManuallyEdited=false; updateCartTotals()"> Cash
+                </label>
+                <label class="flex items-center justify-center py-1.5 rounded-lg border border-slate-200 bg-white cursor-pointer text-[11px] font-bold has-[:checked]:bg-rose-50 has-[:checked]:border-rose-600 has-[:checked]:text-rose-700">
+                  <input type="radio" name="pay-method" value="bKash" class="hidden" onchange="paidManuallyEdited=false; updateCartTotals()"> bKash
+                </label>
+                <label class="flex items-center justify-center py-1.5 rounded-lg border border-slate-200 bg-white cursor-pointer text-[11px] font-bold has-[:checked]:bg-rose-50 has-[:checked]:border-rose-600 has-[:checked]:text-rose-700">
+                  <input type="radio" name="pay-method" value="Nagad" class="hidden" onchange="paidManuallyEdited=false; updateCartTotals()"> Nagad
+                </label>
+                <label class="flex items-center justify-center py-1.5 rounded-lg border border-slate-200 bg-white cursor-pointer text-[11px] font-bold has-[:checked]:bg-rose-50 has-[:checked]:border-rose-600 has-[:checked]:text-rose-700">
+                  <input type="radio" name="pay-method" value="Card" class="hidden" onchange="paidManuallyEdited=false; updateCartTotals()"> Card
+                </label>
+                <label class="flex items-center justify-center py-1.5 rounded-lg border border-rose-200 bg-white cursor-pointer text-[11px] font-bold has-[:checked]:bg-amber-50 has-[:checked]:border-amber-600 has-[:checked]:text-amber-800">
+                  <input type="radio" name="pay-method" value="Due" class="hidden" onchange="paidManuallyEdited=true; document.getElementById('pos-paid-amount').value='0'; calculateChange()"> Due
+                </label>
+              </div>
+
+              <!-- Action Buttons: Send KOT & Final Checkout -->
+              <div class="grid grid-cols-12 gap-2 pt-1">
+                <button type="button" onclick="sendToKitchenKOT()" class="col-span-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl shadow-xs flex items-center justify-center gap-1.5 text-xs sm:text-sm">
+                  <i data-lucide="flame" class="w-4 h-4"></i> Send KOT
+                </button>
+                <button type="button" onclick="processCheckout()" class="col-span-7 py-2.5 rd-btn-primary shadow-md flex items-center justify-center gap-1.5 text-xs sm:text-sm">
+                  <i data-lucide="printer" class="w-4 h-4"></i> Bill & Print Memo
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 2. KITCHEN DISPLAY SYSTEM (KOT) -->
+      <div id="view-kot" class="hidden max-w-7xl mx-auto p-4 sm:p-6 space-y-5">
+        <div class="rd-card p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2">
+              <i data-lucide="flame" class="w-6 h-6 text-amber-500"></i> Kitchen Order Tickets (KOT)
+            </h2>
+            <p class="text-xs text-slate-500">Live orders sent to the kitchen. Mark dishes ready or load a table into POS for final billing.</p>
+          </div>
+          <button onclick="switchTab('pos')" class="px-4 py-2 rd-btn-primary text-xs sm:text-sm">+ New Order</button>
+        </div>
+
+        <div id="kot-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+      </div>
+
+      <!-- 3. MENU & PORTIONS MANAGEMENT -->
+      <div id="view-menu" class="hidden max-w-7xl mx-auto p-4 sm:p-6 space-y-5">
+        <div class="rd-card p-5 flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div>
+            <h2 class="text-xl font-bold text-slate-900">Menu Items & Portion Sizes</h2>
+            <p class="text-xs text-slate-500">Manage dishes with multiple portions (Half, Full, Family Pack, Regular, Large) and track availability.</p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button onclick="openBulkUpload()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs sm:text-sm font-semibold">Bulk Upload (Excel)</button>
+            <button onclick="openAddProductModal()" class="px-4 py-2 rd-btn-primary text-xs sm:text-sm flex items-center gap-1.5">
+              <i data-lucide="plus" class="w-4 h-4"></i> Add New Dish
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <input type="text" id="inv-search" oninput="renderInventory()" placeholder="Search dish name or code..." class="px-3.5 py-2 bg-white border border-slate-300 rounded-xl text-sm">
+          <select id="inv-cat-select" onchange="renderInventory()" class="px-3.5 py-2 bg-white border border-slate-300 rounded-xl text-sm"></select>
+          <select id="inv-sort" onchange="renderInventory()" class="px-3.5 py-2 bg-white border border-slate-300 rounded-xl text-sm">
+            <option value="name_asc">Sort by Name (A-Z)</option>
+            <option value="price_desc">Highest Price First</option>
+            <option value="stock_asc">Unavailable First</option>
+          </select>
+        </div>
+
+        <div class="rd-card overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs sm:text-sm">
+              <thead class="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+                <tr>
+                  <th class="py-3 px-4">Dish Name</th>
+                  <th class="py-3 px-3">Category</th>
+                  <th class="py-3 px-3">Portions & Prices</th>
+                  <th class="py-3 px-3 text-right">Prep Cost</th>
+                  <th class="py-3 px-3 text-center">Available</th>
+                  <th class="py-3 px-4 text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="inventory-tbody" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. TABLE SETUP -->
+      <div id="view-tables" class="hidden max-w-4xl mx-auto p-4 sm:p-6 space-y-5">
+        <div class="rd-card p-5 flex items-center justify-between">
+          <div>
+            <h2 class="text-xl font-bold text-slate-900">Restaurant Tables</h2>
+            <p class="text-xs text-slate-500">Add or remove dine-in tables. Occupied tables show live running bills.</p>
+          </div>
+          <button onclick="addNewTable()" class="px-4 py-2 rd-btn-primary text-xs sm:text-sm">+ Add Table</button>
+        </div>
+        <div id="tables-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-3"></div>
+      </div>
+
+      <!-- 5. CATEGORIES -->
+      <div id="view-categories" class="hidden max-w-3xl mx-auto p-4 sm:p-6 space-y-5">
+        <div class="rd-card p-5 flex items-center justify-between">
+          <div>
+            <h2 class="text-xl font-bold text-slate-900">Menu Categories</h2>
+            <p class="text-xs text-slate-500">Organize your dishes into clean sections.</p>
+          </div>
+          <button onclick="switchTab('menu')" class="px-3.5 py-2 rd-btn-outline text-xs">← Back to Menu</button>
+        </div>
+        <div class="rd-card p-4 flex gap-2">
+          <input type="text" id="cat-add-input" placeholder="e.g. Biriyani, Burgers, Chinese, Drinks" class="flex-1 px-3 py-2 border border-slate-300 rounded-xl text-sm">
+          <button onclick="addCategory()" class="px-4 py-2 rd-btn-primary text-sm">+ Add</button>
+        </div>
+        <div id="cat-list" class="rd-card p-4 space-y-2"></div>
+      </div>
+
+      <!-- 6. SALES REPORTS & PDF -->
+      <div id="view-reports" class="hidden max-w-7xl mx-auto p-4 sm:p-6 space-y-5">
+        <div class="rd-card p-5 flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div>
+            <h2 class="text-xl font-bold text-slate-900">Sales Report & Order History</h2>
+            <p class="text-xs text-slate-500">Filter by day, month or custom dates and export PDF / CSV reports.</p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button onclick="downloadSalesReportPDF()" class="px-4 py-2 rd-btn-primary text-xs sm:text-sm flex items-center gap-1.5">
+              <i data-lucide="file-down" class="w-4 h-4"></i> Download PDF
+            </button>
+            <button onclick="exportSalesCSV()" class="px-3.5 py-2 rd-btn-outline text-xs sm:text-sm">Export CSV</button>
+          </div>
+        </div>
+
+        <div class="rd-card p-4 grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
+          <div>
+            <label class="block font-semibold text-slate-600 mb-1">From Date</label>
+            <input type="date" id="rep-from" onchange="renderSalesReportView()" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-600 mb-1">To Date</label>
+            <input type="date" id="rep-to" onchange="renderSalesReportView()" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-600 mb-1">Order Type</label>
+            <select id="rep-type" onchange="renderSalesReportView()" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+              <option value="all">All Types</option>
+              <option value="Dine-In">Dine-In</option>
+              <option value="Takeaway">Takeaway</option>
+              <option value="Delivery">Delivery</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-600 mb-1">Search Memo / Phone</label>
+            <input type="text" id="rep-search" oninput="renderSalesReportView()" placeholder="Memo no. or customer..." class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+          </div>
+        </div>
+
+        <!-- Order List Table -->
+        <div class="rd-card overflow-hidden">
+          <div class="p-4 border-b border-slate-200 font-bold text-sm">Completed Orders (<span id="rep-count">0</span>)</div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs sm:text-sm">
+              <thead class="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+                <tr>
+                  <th class="py-3 px-4">Memo No.</th>
+                  <th class="py-3 px-3">Date & Time</th>
+                  <th class="py-3 px-3">Type / Table</th>
+                  <th class="py-3 px-3">Customer</th>
+                  <th class="py-3 px-3">Dishes Ordered</th>
+                  <th class="py-3 px-3 text-right">Discount</th>
+                  <th class="py-3 px-3 text-right">Total</th>
+                  <th class="py-3 px-4 text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="sales-tbody" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 2-Column Summary Table -->
+        <div class="rd-card overflow-hidden">
+          <div class="p-4 bg-slate-900 text-white font-bold text-sm">Period Summary</div>
+          <table class="w-full text-left text-xs sm:text-sm">
+            <tbody id="summary-two-col-tbody" class="divide-y divide-slate-200"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 7. DASHBOARD -->
+      <div id="view-dashboard" class="hidden max-w-7xl mx-auto p-4 sm:p-6 space-y-5">
+        <div class="rd-card p-5 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 class="text-xl font-bold text-slate-900">Restaurant Dashboard</h2>
+            <p id="dash-date" class="text-xs text-slate-500"></p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <div id="dash-period" class="flex bg-slate-100 p-1 rounded-lg text-xs"></div>
+            <button onclick="switchTab('pos')" class="px-4 py-2 rd-btn-primary text-xs sm:text-sm">+ New Order</button>
+          </div>
+        </div>
+        <div id="dash-status"></div>
+        <div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3" id="dash-cards"></div>
+        <div id="dash-body" class="space-y-5"></div>
+      </div>
+
+      <!-- 9. FINANCE / EXPENSES / SUPPLIERS -->
+      <div id="view-finance" class="hidden max-w-7xl mx-auto p-4 sm:p-6 space-y-5">
+        <div class="rd-card p-5 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 class="text-xl font-bold text-slate-900">Profit & Loss Summary</h2>
+            <p class="text-xs text-slate-500">Net restaurant profit after food cost and daily bazar expenses.</p>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="switchTab('expenses')" class="px-3.5 py-2 rd-btn-primary text-xs">+ Add Expense</button>
+            <button onclick="switchTab('suppliers')" class="px-3.5 py-2 rd-btn-outline text-xs">Suppliers</button>
+          </div>
+        </div>
+        <div id="finance-cards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"></div>
+      </div>
+
+      <div id="view-expenses" class="hidden max-w-5xl mx-auto p-4 sm:p-6 space-y-5">
+        <div class="rd-card p-5">
+          <h2 class="text-xl font-bold text-slate-900 mb-3">Daily Expenses (Bazar, Rent, Staff)</h2>
+          <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
+            <select id="exp-cat" class="px-3 py-2 border border-slate-300 rounded-lg">
+              <option>Daily Bazar / Ingredients</option>
+              <option>Gas & Electricity</option>
+              <option>Staff Salary</option>
+              <option>Shop Rent</option>
+              <option>Packaging & Boxes</option>
+              <option>Others</option>
+            </select>
+            <input type="number" id="exp-amt" placeholder="Amount (৳)" class="px-3 py-2 border border-slate-300 rounded-lg font-bold">
+            <input type="text" id="exp-note" placeholder="Note (e.g. Chicken 10kg)" class="px-3 py-2 border border-slate-300 rounded-lg">
+            <button onclick="addExpense()" class="rd-btn-primary py-2">Save Expense</button>
+          </div>
+        </div>
+        <div class="rd-card overflow-hidden">
+          <table class="w-full text-left text-xs sm:text-sm">
+            <thead class="bg-slate-50 font-semibold border-b border-slate-200">
+              <tr><th class="py-3 px-4">Date</th><th class="py-3 px-3">Category</th><th class="py-3 px-3">Note</th><th class="py-3 px-3 text-right">Amount</th><th class="py-3 px-4 text-right">Action</th></tr>
+            </thead>
+            <tbody id="expenses-tbody" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="view-suppliers" class="hidden max-w-5xl mx-auto p-4 sm:p-6 space-y-5">
+        <div class="rd-card p-5 flex items-center justify-between">
+          <div>
+            <h2 class="text-xl font-bold text-slate-900">Suppliers & Raw Material Purchases</h2>
+            <p class="text-xs text-slate-500">Track meat, grocery and packaging suppliers.</p>
+          </div>
+          <button onclick="addSupplier()" class="px-4 py-2 rd-btn-primary text-xs">+ Add Supplier</button>
+        </div>
+        <div id="suppliers-list" class="rd-card p-4 space-y-2 text-sm"></div>
+      </div>
+  <!-- REPORT CENTER -->
+  <div id="view-rc" class="hidden max-w-7xl mx-auto p-4 sm:p-6 space-y-5">
+    <div class="rd-card p-5 flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <h2 class="text-xl font-bold text-slate-900">📑 Report Center</h2>
+        <p class="text-xs text-slate-500">Sell, Profit ar Loss ek jaygay. PDF, Excel, CSV ba Print kore nin.</p>
+      </div>
+     <div class="flex flex-wrap gap-2">
+        <button onclick="rcDownloadPDF()" class="px-4 py-2 rd-btn-primary text-xs sm:text-sm">⬇ PDF</button>
+        <button onclick="rcExportExcel()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs sm:text-sm font-semibold">⬇ Excel</button>
+        <button onclick="rcExportCSV()" class="px-4 py-2 rd-btn-outline text-xs sm:text-sm">CSV</button>
+        <button onclick="rcPrint()" class="px-4 py-2 rd-btn-outline text-xs sm:text-sm">🖨 Print</button>
+      </div>
+    </div>
+    <div class="rd-card p-4 flex flex-wrap items-end gap-3 text-xs">
+      <div id="rc-period" class="flex flex-wrap bg-slate-100 p-1 rounded-lg"></div>
+      <div id="rc-custom" class="hidden">
+        <div class="flex gap-2 items-end">
+          <div><label class="block font-semibold text-slate-600 mb-1">From</label><input type="date" id="rc-from" onchange="renderReportCenter()" class="px-3 py-1.5 border border-slate-300 rounded-lg"></div>
+          <div><label class="block font-semibold text-slate-600 mb-1">To</label><input type="date" id="rc-to" onchange="renderReportCenter()" class="px-3 py-1.5 border border-slate-300 rounded-lg"></div>
+        </div>
+      </div>
+    </div>
+    <div id="rc-body" class="space-y-5"></div>
+  </div>
+    </main>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav id="mobile-nav" class="hidden fixed bottom-0 inset-x-0 bg-white border-t border-slate-200 justify-around py-1.5 z-40 no-print">
+      <button onclick="switchTab('pos')" class="flex flex-col items-center text-[11px] font-bold text-rose-600"><i data-lucide="shopping-cart" class="w-5 h-5 mb-0.5"></i>POS</button>
+      <button onclick="switchTab('kot')" class="flex flex-col items-center text-[11px] font-semibold text-slate-600"><i data-lucide="flame" class="w-5 h-5 mb-0.5"></i>KOT</button>
+      <button onclick="switchTab('menu')" class="flex flex-col items-center text-[11px] font-semibold text-slate-600"><i data-lucide="utensils-crossed" class="w-5 h-5 mb-0.5"></i>Menu</button>
+      <button onclick="switchTab('reports')" class="flex flex-col items-center text-[11px] font-semibold text-slate-600"><i data-lucide="file-text" class="w-5 h-5 mb-0.5"></i>Reports</button>
+      <button onclick="switchTab('dashboard')" class="flex flex-col items-center text-[11px] font-semibold text-slate-600"><i data-lucide="bar-chart-3" class="w-5 h-5 mb-0.5"></i>Stats</button>
+    </nav>
+  </div>
+
+  <!-- ==================== MODALS ==================== -->
+
+  <!-- PORTION SELECTOR MODAL -->
+  <div id="portion-modal" class="fixed inset-0 z-50 bg-slate-900/60 hidden items-center justify-center p-4 no-print">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl text-xs">
+      <div class="flex justify-between items-start pb-3 border-b border-slate-100">
+        <div>
+          <h3 id="portion-modal-name" class="text-base font-bold text-slate-900">Dish Name</h3>
+          <p class="text-[11px] text-slate-500">Select portion size</p>
+        </div>
+        <button onclick="closeModal('portion-modal')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <div id="portion-options" class="grid grid-cols-2 gap-2.5 py-4"></div>
+    </div>
+  </div>
+
+  <!-- ADD / EDIT DISH MODAL -->
+  <div id="product-modal" class="fixed inset-0 z-50 bg-slate-900/60 hidden items-center justify-center p-4 overflow-y-auto no-print">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-5 shadow-2xl text-xs max-h-[92vh] flex flex-col">
+      <div class="flex justify-between items-center pb-3 border-b border-slate-200">
+        <h3 id="product-modal-title" class="text-base font-bold text-slate-900">Add New Dish</h3>
+        <button onclick="closeModal('product-modal')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <form onsubmit="handleProductFormSubmit(event)" class="mt-3 space-y-3 overflow-y-auto flex-1 pr-1">
+        <input type="hidden" id="form-prod-id">
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Dish Name *</label>
+          <input type="text" id="form-prod-name" required placeholder="e.g. Kacchi Biriyani (Mutton)" class="w-full px-3 py-2 border border-slate-300 rounded-xl">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Category *</label>
+            <select id="form-prod-category" class="w-full px-3 py-2 border border-slate-300 rounded-xl"></select>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Prep / Food Cost (৳)</label>
+            <input type="number" id="form-prod-buy" min="0" value="0" class="w-full px-3 py-2 border border-slate-300 rounded-xl font-bold">
+          </div>
+        </div>
+
+        <!-- Portions Section -->
+        <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-slate-800">Portions & Selling Prices</span>
+            <button type="button" onclick="addVariantRow()" class="px-2.5 py-1 rd-btn-primary text-[11px]">+ Add Portion</button>
+          </div>
+          <div class="flex gap-1 flex-wrap text-[11px]">
+            <button type="button" onclick="addVariantRow('Regular', 250, true)" class="px-2 py-0.5 bg-white border rounded">+ Regular</button>
+            <button type="button" onclick="addVariantRow('Half', 180, true)" class="px-2 py-0.5 bg-white border rounded">+ Half</button>
+            <button type="button" onclick="addVariantRow('Full', 320, true)" class="px-2 py-0.5 bg-white border rounded">+ Full</button>
+            <button type="button" onclick="addVariantRow('Family Pack', 850, true)" class="px-2 py-0.5 bg-white border rounded">+ Family Pack</button>
+          </div>
+          <div id="variants-container" class="space-y-1.5 max-h-44 overflow-y-auto"></div>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-3 border-t border-slate-200">
+          <button type="button" onclick="closeModal('product-modal')" class="px-4 py-2 rd-btn-outline">Cancel</button>
+          <button type="submit" class="px-5 py-2 rd-btn-primary">Save Dish</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- RECEIPT / KOT PRINT MODAL -->
+  <div id="receipt-modal" class="fixed inset-0 z-50 bg-slate-900/70 hidden items-center justify-center p-3 overflow-y-auto no-print">
+    <div class="bg-white rounded-2xl max-w-2xl w-full p-4 sm:p-5 shadow-2xl flex flex-col max-h-[95vh]">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+        <h3 id="receipt-modal-title" class="text-base font-bold text-slate-900">Receipt Preview</h3>
+        <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-lg text-xs">
+          <button onclick="setPrinterFormat('80mm')" class="px-2.5 py-1 rounded font-bold bg-white shadow-xs" id="fmt-80mm">80mm</button>
+          <button onclick="setPrinterFormat('58mm')" class="px-2.5 py-1 rounded font-semibold" id="fmt-58mm">58mm</button>
+          <button onclick="setPrinterFormat('a4')" class="px-2.5 py-1 rounded font-semibold" id="fmt-a4">A4</button>
+        </div>
+        <button onclick="closeModal('receipt-modal')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <div class="print-preview-container my-3 flex-1">
+        <div id="print-area" class="paper-80mm p-3"></div>
+      </div>
+      <div class="flex justify-end gap-2 pt-3 border-t border-slate-200">
+        <button onclick="closeModal('receipt-modal')" class="px-4 py-2 rd-btn-outline text-xs">Close</button>
+        <button onclick="triggerInvoicePrint()" class="px-5 py-2 rd-btn-primary text-xs sm:text-sm flex items-center gap-1.5">
+          <i data-lucide="printer" class="w-4 h-4"></i> Print Now
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DUE BOOK MODAL -->
+  <div id="due-modal" class="fixed inset-0 z-50 bg-slate-900/70 hidden items-center justify-center p-4 no-print">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-5 shadow-2xl text-xs max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center pb-3 border-b border-slate-200">
+        <h3 class="text-base font-bold text-slate-900">Credit / Due Book</h3>
+        <button onclick="closeModal('due-modal')" class="text-slate-400"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <div id="due-list" class="mt-3 space-y-2"></div>
+    </div>
+  </div>
+
+  <!-- RETURN / VOID MODAL -->
+  <div id="return-modal" class="fixed inset-0 z-50 bg-slate-900/70 hidden items-center justify-center p-4 no-print">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-5 shadow-2xl text-xs max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center pb-3 border-b border-slate-200">
+        <h3 class="text-base font-bold text-slate-900">Refund / Void Order</h3>
+        <button onclick="closeModal('return-modal')" class="text-slate-400"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <div id="return-list" class="mt-3 space-y-2"></div>
+    </div>
+  </div>
+
+  <!-- SETTINGS MODAL -->
+  <div id="settings-modal" class="fixed inset-0 z-50 bg-slate-900/60 hidden items-center justify-center p-4 no-print">
+    <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl text-xs space-y-3 max-h-[92vh] overflow-y-auto">
+      <div class="flex justify-between items-center pb-3 border-b border-slate-200">
+        <h3 class="text-base font-bold text-slate-900">Restaurant Settings</h3>
+        <button onclick="closeModal('settings-modal')" class="text-slate-400"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+
+      <!-- LOGO -->
+      <div>
+        <label class="block font-semibold mb-1">Restaurant Logo</label>
+        <div class="flex items-center gap-3">
+          <img id="set-logo-preview" class="brand-logo w-16 h-16 border border-slate-200" alt="logo preview">
+          <div class="flex flex-col gap-1.5">
+            <label class="px-3 py-2 rd-btn-outline cursor-pointer text-center">Upload Logo
+              <input type="file" accept="image/*" onchange="handleLogoFile(event)" class="hidden">
+            </label>
+            <button type="button" onclick="resetLogo()" class="text-rose-600 font-bold text-left">Reset to default logo</button>
+          </div>
+        </div>
+        <p class="text-[10px] text-slate-400 mt-1">PNG / JPG / SVG. Shown on login, sidebar, memo, KOT and PDF report.</p>
+      </div>
+
+      <div>
+        <label class="block font-semibold mb-1">Restaurant Name</label>
+        <input type="text" id="set-shop-name" class="w-full px-3 py-2 border rounded-xl">
+      </div>
+      <div>
+        <label class="block font-semibold mb-1">Tagline</label>
+        <input type="text" id="set-shop-tagline" class="w-full px-3 py-2 border rounded-xl">
+      </div>
+      <div>
+        <label class="block font-semibold mb-1">Address</label>
+        <input type="text" id="set-shop-address" class="w-full px-3 py-2 border rounded-xl">
+      </div>
+      <div>
+        <label class="block font-semibold mb-1">Phone Number</label>
+        <input type="text" id="set-shop-phone" class="w-full px-3 py-2 border rounded-xl">
+      </div>
+      <div>
+        <label class="block font-semibold mb-1">Default Receipt Size</label>
+        <select id="set-default-printer" class="w-full px-3 py-2 border rounded-xl font-bold">
+          <option value="80mm">80mm Thermal Receipt</option>
+          <option value="58mm">58mm Mini Thermal</option>
+          <option value="a4">A4 Full Invoice</option>
+        </select>
+      </div>
+      <div>
+        <label class="block font-semibold mb-1">Receipt Footer Message</label>
+        <input type="text" id="set-shop-policy" class="w-full px-3 py-2 border rounded-xl">
+      </div>
+
+      <!-- BANGLA QR -->
+      <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+        <div class="font-bold text-slate-800">Bangla QR (Memo Payment)</div>
+        <select id="set-qr-mode" class="w-full px-3 py-2 border rounded-xl bg-white font-bold">
+          <option value="off">Off (memo-te QR dekhabe na)</option>
+          <option value="image">Image - merchant QR chhobi upload</option>
+          <option value="payload">Auto Amount - QR payload text</option>
+        </select>
+        <input type="text" id="set-qr-label" placeholder="QR title" class="w-full px-3 py-2 border rounded-xl bg-white">
+        <div class="flex items-center gap-3">
+          <img id="set-qr-preview" class="w-16 h-16 border border-slate-200 rounded bg-white object-contain" alt="qr">
+          <label class="px-3 py-2 rd-btn-outline cursor-pointer text-center">Upload QR Image
+            <input type="file" accept="image/*" onchange="handleQrFile(event)" class="hidden">
+          </label>
+        </div>
+        <textarea id="set-qr-payload" rows="3" placeholder="Auto Amount mode: merchant QR scan kore paoa text ekhane paste korun (000201...)" class="w-full px-3 py-2 border rounded-xl bg-white text-[11px]"></textarea>
+      </div>
+
+      <!-- LOGIN CREDENTIALS -->
+      <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+        <div class="font-bold text-slate-800">Login (Admin Access)</div>
+        <input type="email" id="set-admin-email" placeholder="Admin email" class="w-full px-3 py-2 border rounded-xl bg-white">
+        <input type="text" id="set-admin-pass" placeholder="Admin password" class="w-full px-3 py-2 border rounded-xl bg-white">
+      </div>
+
+      <!-- BACKUP -->
+      <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+        <div class="font-bold text-slate-800">Data Backup</div>
+        <p class="text-[10px] text-slate-500">All data is stored in this browser. Download a backup regularly, restore it on any device.</p>
+        <div class="flex gap-2">
+          <button type="button" onclick="exportBackup()" class="flex-1 px-3 py-2 rd-btn-outline">Download Backup</button>
+          <label class="flex-1 px-3 py-2 rd-btn-outline cursor-pointer text-center">Restore Backup
+            <input type="file" accept=".json" onchange="importBackup(event)" class="hidden">
+          </label>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-3 border-t">
+        <button onclick="closeModal('settings-modal')" class="px-4 py-2 rd-btn-outline">Cancel</button>
+        <button onclick="saveShopSettings()" class="px-5 py-2 rd-btn-primary">Save Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BULK UPLOAD MODAL -->
+  <div id="bulk-modal" class="fixed inset-0 z-50 bg-slate-900/60 hidden items-center justify-center p-4 no-print">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-5 shadow-2xl text-xs space-y-3">
+      <div class="flex justify-between items-center pb-3 border-b border-slate-200">
+        <h3 class="text-base font-bold text-slate-900">Bulk Menu Upload (Excel / CSV)</h3>
+        <button onclick="closeModal('bulk-modal')" class="text-slate-400"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <p class="text-slate-600">Columns: <b>Dish Name, Category, Portion, Price, Cost, Available (yes/no)</b></p>
+      <div class="flex gap-2">
+        <button onclick="downloadMenuTemplate()" class="px-3.5 py-2 rd-btn-outline">Download Template</button>
+        <label class="px-4 py-2 rd-btn-primary cursor-pointer">
+          Choose Excel/CSV <input type="file" accept=".xlsx,.xls,.csv" onchange="handleBulkFile(event)" class="hidden">
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- ISOLATED PRINT & PDF CONTAINERS -->
+  <div id="isolated-print-mount" class="hidden"></div>
+  <div style="position:absolute;left:-9999px;top:0;"><div id="pdf-render-canvas" class="p-8 bg-white"></div></div>
+  <div id="toast-container" class="fixed bottom-16 md:bottom-5 right-4 z-[110] flex flex-col gap-2 pointer-events-none no-print"></div>
+  <style id="dynamic-print-style"></style>
+
+  <!-- ==================== JAVASCRIPT ENGINE ==================== -->
+  <script>
+    const K_MENU = 'restpos_menu_v1';
+    const K_SALES = 'restpos_sales_v1';
+    const K_KOTS = 'restpos_kots_v1';
+    const K_TABLES = 'restpos_tables_v1';
+    const K_CFG = 'restpos_cfg_v1';
+    const K_EXP = 'restpos_exp_v1';
+    const K_SUP = 'restpos_sup_v1';
+    const ALL_KEYS = [K_MENU, K_SALES, K_KOTS, K_TABLES, K_CFG, K_EXP, K_SUP];
+
+    /* Built-in default logo (flame emblem). Replace anytime from Settings -> Upload Logo. */
+    const DEFAULT_LOGO_SVG = "<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='#e11d2e'/><path d='M50 12c4 14 22 22 22 44a22 22 0 0 1-44 0c0-11 5-17 11-24 1 7 4 10 9 11-3-11-2-22 2-31z' fill='#ffffff'/><path d='M50 58c3 6 10 9 10 17a10 10 0 0 1-20 0c0-6 4-9 10-17z' fill='#e11d2e'/><rect x='24' y='86' width='52' height='4' rx='2' fill='#ffffff'/></svg>";
+    const DEFAULT_LOGO = 'data:image/svg+xml;utf8,' + encodeURIComponent(DEFAULT_LOGO_SVG);
+
+    const DEFAULT_CFG = {
+      logo: '',
+      adminEmail: 'admin@restaurant.com',
+      adminPass: '123456',
+      name: 'Spice & Flame Kitchen',
+      tagline: 'Authentic Biriyani, Grill & Fast Food',
+      address: 'House #14, Lake View Road, Dhaka',
+      phone: '+880 1711-009988',
+      defaultPrinter: '80mm',
+      policy: 'Thank you for dining with us! Visit again.',
+      payQrMode: 'off',            // 'off' | 'image' | 'payload'
+      payQrImage: '',
+      payQrPayload: '',
+      payQrLabel: 'Scan to Pay (Bangla QR)',
+      categories: ['Biriyani', 'Burgers & Pizza', 'Chinese & Rice', 'Grill & Kebab', 'Drinks & Dessert']
+    };
+
+    const INITIAL_MENU = [
+      {
+        id: 'm1', name: 'Mutton Kacchi Biriyani', category: 'Biriyani', buyPrice: 190,
+        variants: [
+          { size: 'Half', sku: '200101', price: 260, stock: 40 },
+          { size: 'Full', sku: '200102', price: 380, stock: 50 },
+          { size: 'Family Pack (4 Person)', sku: '200103', price: 1350, stock: 15 }
+        ]
+      },
+      {
+        id: 'm2', name: 'Chicken Dum Biriyani', category: 'Biriyani', buyPrice: 130,
+        variants: [
+          { size: 'Regular', sku: '200104', price: 220, stock: 60 },
+          { size: 'Large', sku: '200105', price: 300, stock: 30 }
+        ]
+      },
+      {
+        id: 'm3', name: 'Smoky Beef Cheese Burger', category: 'Burgers & Pizza', buyPrice: 110,
+        variants: [
+          { size: 'Single Patty', sku: '200201', price: 210, stock: 35 },
+          { size: 'Double Patty', sku: '200202', price: 310, stock: 25 }
+        ]
+      },
+      {
+        id: 'm4', name: 'BBQ Chicken Pizza', category: 'Burgers & Pizza', buyPrice: 240,
+        variants: [
+          { size: '8 Inch', sku: '200203', price: 420, stock: 20 },
+          { size: '12 Inch', sku: '200204', price: 680, stock: 20 }
+        ]
+      },
+      {
+        id: 'm5', name: 'Chicken Fried Rice & Chili Chicken', category: 'Chinese & Rice', buyPrice: 120,
+        variants: [
+          { size: '1:1 Platter', sku: '200301', price: 240, stock: 45 },
+          { size: '1:3 Bowl', sku: '200302', price: 520, stock: 20 }
+        ]
+      },
+      {
+        id: 'm6', name: 'Chicken Tandoori', category: 'Grill & Kebab', buyPrice: 95,
+        variants: [
+          { size: 'Quarter', sku: '200401', price: 160, stock: 40 },
+          { size: 'Full', sku: '200402', price: 580, stock: 15 }
+        ]
+      },
+      {
+        id: 'm7', name: 'Mint Lemon Mojito', category: 'Drinks & Dessert', buyPrice: 35,
+        variants: [
+          { size: '300ml Glass', sku: '200501', price: 110, stock: 80 }
+        ]
+      }
+    ];
+
+    const INITIAL_TABLES = ['Table 01', 'Table 02', 'Table 03', 'Table 04', 'Table 05', 'Table 06', 'VIP Cabin 1', 'VIP Cabin 2'];
+
+    const loadLS = (k, fb) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : fb; } catch { return fb; } };
+    const saveLS = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { showToast('Storage full! Try a smaller logo or download a backup.', 'error'); } if (window.fbPush) window.fbPush(k, v); };
+    const esc = (s) => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    const money = (n) => Math.round(Number(n) || 0).toLocaleString('en-US');
+    const todayYMD = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+
+    let shopConfig = { ...DEFAULT_CFG, ...loadLS(K_CFG, {}) };
+    let menuItems = loadLS(K_MENU, INITIAL_MENU);
+    let sales = loadLS(K_SALES, []);
+    let activeKots = loadLS(K_KOTS, []); // Running table orders
+    let tables = loadLS(K_TABLES, INITIAL_TABLES);
+    let expenses = loadLS(K_EXP, []);
+    let suppliers = loadLS(K_SUP, []);
+
+    let cart = [];
+    let activeCat = 'all';
+    let activePrinterFormat = shopConfig.defaultPrinter || '80mm';
+    let currentViewingSale = null;
+    let paidManuallyEdited = false;
+    let tmpLogo = null; // null = unchanged, '' = reset to default, 'data:..' = new logo
+
+    /* -------------------- BANGLA QR -------------------- */
+    let tmpQrImage = null;
+
+    function handleQrFile(e) {
+      const f = e.target.files[0];
+      if (!f) return;
+      const rd = new FileReader();
+      rd.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const max = 500, r = Math.min(1, max / Math.max(img.width, img.height));
+          const c = document.createElement('canvas');
+          c.width = Math.max(1, Math.round(img.width * r));
+          c.height = Math.max(1, Math.round(img.height * r));
+          const ctx = c.getContext('2d');
+          ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+          ctx.drawImage(img, 0, 0, c.width, c.height);
+          tmpQrImage = c.toDataURL('image/png');
+          document.getElementById('set-qr-preview').src = tmpQrImage;
+        };
+        img.onerror = () => showToast('Could not read this image', 'error');
+        img.src = rd.result;
+      };
+      rd.readAsDataURL(f);
+      e.target.value = '';
+    }
+
+    function crc16ccitt(str) {
+      let crc = 0xFFFF;
+      for (let i = 0; i < str.length; i++) {
+        crc ^= str.charCodeAt(i) << 8;
+        for (let b = 0; b < 8; b++) crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) & 0xFFFF : (crc << 1) & 0xFFFF;
+      }
+      return crc.toString(16).toUpperCase().padStart(4, '0');
+    }
+
+    // Merchant-er static Bangla QR (EMV) payload-e amount boshiye notun CRC banay
+    function buildBanglaQrPayload(base, amount) {
+      const tags = [];
+      let i = 0;
+      while (i + 4 <= base.length) {
+        const tag = base.substr(i, 2);
+        const len = parseInt(base.substr(i + 2, 2), 10);
+        if (isNaN(len)) throw new Error('bad payload');
+        tags.push([tag, base.substr(i + 4, len)]);
+        i += 4 + len;
+      }
+      const set = (t, v) => { const x = tags.find(a => a[0] === t); if (x) x[1] = v; else tags.push([t, v]); };
+      set('01', '12'); // dynamic QR
+      set('54', Number(amount).toFixed(2));
+      const body = tags.filter(a => a[0] !== '63')
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([t, v]) => t + String(v.length).padStart(2, '0') + v).join('');
+      return body + '6304' + crc16ccitt(body + '6304');
+    }
+
+    function makeQrDataUrl(text) {
+      const d = document.createElement('div');
+      new QRCode(d, { text, width: 300, height: 300, correctLevel: QRCode.CorrectLevel.M });
+      return d.querySelector('canvas').toDataURL('image/png');
+    }
+
+    function payQrHtml(s, is58, big) {
+      const mode = shopConfig.payQrMode || 'off';
+      if (mode === 'off') return '';
+      const dueAmt = s.grandTotal - s.paidAmount;
+      const amt = Math.round(dueAmt > 0 ? dueAmt : s.grandTotal);
+      let src = '';
+      if (mode === 'image') src = shopConfig.payQrImage;
+      else if (mode === 'payload' && shopConfig.payQrPayload) {
+        try { src = makeQrDataUrl(buildBanglaQrPayload(shopConfig.payQrPayload, amt)); } catch (e) { src = ''; }
+      }
+      if (!src) return '';
+      const size = is58 ? 120 : big ? 170 : 150;
+      return `<div class="c"><div class="sep"></div>
+        <div class="sm"><b>${esc(shopConfig.payQrLabel || 'Scan to Pay')}</b></div>
+        <img src="${src}" style="width:${size}px;height:${size}px;display:block;margin:4px auto 0;image-rendering:pixelated;background:#fff" alt="QR">
+        ${shopConfig.payQrMode === 'payload' ? `<div class="sm">Amount: Tk ${money(amt)}</div>` : ''}</div>`;
+    }
+
+    /* -------------------- LOGO SYSTEM -------------------- */
+    function getLogo() { return shopConfig.logo || DEFAULT_LOGO; }
+    function logoImg(cls) { return `<img src="${getLogo()}" class="${cls}" alt="logo">`; }
+
+  let _pdfLogoCache = { src: null, png: null };
+  function getLogoForPdf() {
+  const src = getLogo();
+  if (_pdfLogoCache.src === src && _pdfLogoCache.png) return Promise.resolve(_pdfLogoCache.png);
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      const S = 240;
+      const w = img.naturalWidth || S, h = img.naturalHeight || S;
+      const r = Math.min(S / w, S / h);
+      const dw = w * r, dh = h * r;
+      const c = document.createElement('canvas');
+      c.width = S; c.height = S;
+      const ctx = c.getContext('2d');
+      ctx.drawImage(img, (S - dw) / 2, (S - dh) / 2, dw, dh);
+      const png = c.toDataURL('image/png');
+      _pdfLogoCache = { src, png };
+      resolve(png);
+    };
+    img.onerror = () => resolve(src);
+    img.src = src;
+  });
+}
+
+    function applyLogoUI() {
+      const L = getLogo();
+      ['login-logo', 'sidebar-logo', 'mobile-logo'].forEach(id => { const el = document.getElementById(id); if (el) el.src = L; });
+      const fav = document.getElementById('app-favicon');
+      if (fav) fav.href = L;
+    }
+
+    function handleLogoFile(e) {
+      const f = e.target.files[0];
+      if (!f) return;
+      const rd = new FileReader();
+      rd.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const max = 300, r = Math.min(1, max / Math.max(img.width, img.height));
+          const c = document.createElement('canvas');
+          c.width = Math.max(1, Math.round(img.width * r));
+          c.height = Math.max(1, Math.round(img.height * r));
+          c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+          tmpLogo = c.toDataURL('image/png');
+          document.getElementById('set-logo-preview').src = tmpLogo;
+        };
+        img.onerror = () => showToast('Could not read this image', 'error');
+        img.src = rd.result;
+      };
+      rd.readAsDataURL(f);
+      e.target.value = '';
+    }
+
+    function resetLogo() {
+      tmpLogo = '';
+      document.getElementById('set-logo-preview').src = DEFAULT_LOGO;
+    }
+
+    /* -------------------- INIT -------------------- */
+    window.addEventListener('DOMContentLoaded', () => {
+      applyConfigUI();
+      applyLogoUI();
+      populateTablesDropdown();
+      renderPosCategories();
+      renderPosCatalog();
+      renderCart();
+      updateKotBadges();
+      lucide.createIcons();
+
+      const t = todayYMD();
+      document.getElementById('rep-from').value = t.slice(0, 8) + '01';
+      document.getElementById('rep-to').value = t;
+
+      // keep user signed in during this browser session
+      if (sessionStorage.getItem('restpos_auth') === '1') {
+        document.getElementById('sidebar-user-email').innerText = sessionStorage.getItem('restpos_user') || shopConfig.adminEmail;
+        document.getElementById('login-screen').classList.add('hidden');
+      }
+    });
+
+    function handleLoginSubmit(e) {
+      e.preventDefault();
+      const email = document.getElementById('login-email').value.trim();
+      const pass = document.getElementById('login-password').value;
+      if (email.toLowerCase() !== String(shopConfig.adminEmail).toLowerCase() || pass !== shopConfig.adminPass) {
+        showToast('Wrong email or password!', 'error');
+        return;
+      }
+      sessionStorage.setItem('restpos_auth', '1');
+      sessionStorage.setItem('restpos_user', email);
+      document.getElementById('sidebar-user-email').innerText = email;
+      document.getElementById('login-screen').classList.add('hidden');
+      showToast('Welcome back to ' + shopConfig.name, 'success');
+    }
+
+    function handleLogout() {
+      if (confirm('Log out of POS?')) {
+        sessionStorage.removeItem('restpos_auth');
+        document.getElementById('login-screen').classList.remove('hidden');
+      }
+    }
+
+    function applyConfigUI() {
+      document.getElementById('topbar-store-name').innerText = shopConfig.name;
+      document.getElementById('topbar-store-tagline').innerText = shopConfig.tagline;
+      document.getElementById('mobile-store-name').innerText = shopConfig.name;
+      document.getElementById('login-shop-name').innerText = shopConfig.name;
+      document.getElementById('active-printer-badge').innerText = `${shopConfig.defaultPrinter} Printer`;
+      document.title = `${shopConfig.name} - POS`;
+    }
+
+    /* -------------------- NAVIGATION -------------------- */
+    function toggleSidebar() {
+      if (window.innerWidth >= 1024) document.body.classList.toggle('sb-collapsed');
+      else document.body.classList.toggle('sb-open');
+    }
+    function closeSidebarMobile() { document.body.classList.remove('sb-open'); }
+
+    // Tablet/mobile: menu-r kono item e click korle drawer nijei bondho hobe
+    document.getElementById('pb-sidebar').addEventListener('click', (e) => {
+      const b = e.target.closest('button');
+      if (b && !b.classList.contains('pb-gb') && window.innerWidth < 1024) closeSidebarMobile();
+    });
+    window.addEventListener('resize', () => { if (window.innerWidth >= 1024) closeSidebarMobile(); });
+    function switchTab(tab) {
+        closeSidebarMobile();
+        ['pos', 'kot', 'menu', 'tables', 'categories', 'reports', 'dashboard', 'customers', 'finance', 'expenses', 'suppliers', 'rc'].forEach(id => {
+        const el = document.getElementById('view-' + id);
+        if (el) el.classList.add('hidden');
+      });
+      const target = document.getElementById('view-' + tab);
+      if (target) target.classList.remove('hidden');
+
+      document.querySelectorAll('#pb-menu .on').forEach(b => b.classList.remove('on'));
+      const navBtn = document.querySelector(`#pb-menu [data-t="${tab}"]`);
+      if (navBtn) {
+        navBtn.classList.add('on');
+        const grp = navBtn.closest('.pb-g');
+        if (grp) grp.classList.add('open');
+      }
+
+      if (tab === 'pos') { renderPosCategories(); renderPosCatalog(); populateTablesDropdown(); }
+      if (tab === 'kot') renderKotScreen();
+      if (tab === 'menu') renderInventory();
+      if (tab === 'tables') renderTablesView();
+      if (tab === 'categories') renderCategoriesView();
+      if (tab === 'reports') renderSalesReportView();
+      if (tab === 'dashboard') renderDashboard();
+      if (tab === 'customers') renderCustomersView();
+      if (tab === 'finance') renderFinanceView();
+      if (tab === 'expenses') renderExpensesView();
+      if (tab === 'suppliers') renderSuppliersView();
+      if (tab === 'rc') renderReportCenter();
+      lucide.createIcons();
+    }
+
+    /* -------------------- POS & TABLES -------------------- */
+    function populateTablesDropdown() {
+      const sel = document.getElementById('cart-table-select');
+      const cur = sel.value;
+      sel.innerHTML = tables.map(t => {
+        const occupied = activeKots.some(k => k.table === t);
+        return `<option value="${esc(t)}">${esc(t)} ${occupied ? '(Running)' : ''}</option>`;
+      }).join('');
+      if (tables.includes(cur)) sel.value = cur;
+    }
+
+    function onOrderTypeChange() {
+      const type = document.querySelector('input[name="order-type"]:checked').value;
+      document.getElementById('table-select-wrap').style.opacity = type === 'Dine-In' ? '1' : '0.4';
+      document.getElementById('cart-table-select').disabled = type !== 'Dine-In';
+    }
+
+    function onTableSelectChange() {
+      const table = document.getElementById('cart-table-select').value;
+      const existingKot = activeKots.find(k => k.table === table);
+      if (existingKot && cart.length === 0) {
+        if (confirm(`${table} has a running order (${existingKot.items.length} items). Load it into cart?`)) {
+          loadKotToCart(existingKot.id);
+        }
+      }
+    }
+
+    function renderPosCategories() {
+      const wrap = document.getElementById('pos-category-pills');
+      const cats = ['all', ...(shopConfig.categories || [])];
+      wrap.innerHTML = cats.map(c => {
+        const active = activeCat === c;
+        return `<button onclick="activeCat='${esc(c)}'; renderPosCategories(); renderPosCatalog();" class="px-3 py-1.5 rounded-full font-semibold whitespace-nowrap transition ${active ? 'bg-[#e11d2e] text-white' : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'}">${c === 'all' ? 'All Dishes' : esc(c)}</button>`;
+      }).join('');
+    }
+
+    function renderPosCatalog() {
+      const grid = document.getElementById('pos-grid');
+      const empty = document.getElementById('pos-no-items');
+      const q = (document.getElementById('pos-search-input').value || '').toLowerCase().trim();
+
+      const list = menuItems.filter(p => {
+        const matchCat = activeCat === 'all' || p.category === activeCat;
+        const matchQ = !q || p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q) || p.variants.some(v => String(v.sku).includes(q));
+        return matchCat && matchQ;
+      });
+
+      if (!list.length) {
+        grid.innerHTML = '';
+        empty.classList.remove('hidden');
+        return;
+      }
+      empty.classList.add('hidden');
+
+      grid.innerHTML = list.map(p => {
+        const anyOn = p.variants.some(v => v.on !== false);
+        const onPrices = p.variants.filter(v => v.on !== false).map(v => Number(v.price) || 0);
+        const minPrice = Math.min(...(onPrices.length ? onPrices : p.variants.map(v => Number(v.price) || 0)));
+        const portions = p.variants.map(v => `<span class="px-1.5 py-0.5 rounded text-[10px] font-semibold ${v.on === false ? 'bg-slate-100 text-slate-400 line-through' : 'bg-slate-100 text-slate-700'}">${esc(v.size)}</span>`).join(' ');
+        const clickAction = anyOn ? `promptDishPortion('${esc(p.id)}')` : `showToast('This dish is currently OFF','warning')`;
+
+        return `
+          <div onclick="${clickAction}" class="bg-white border border-slate-200 ${anyOn ? 'hover:border-rose-500 cursor-pointer' : 'opacity-50 cursor-not-allowed'} rounded-xl p-3 flex flex-col justify-between transition select-none">
+            <div>
+              <div class="flex justify-between items-center mb-1">
+                <span class="text-[10px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">${esc(p.category)}</span>
+                <span class="text-[10px] font-bold ${anyOn ? 'text-emerald-600' : 'text-rose-600'}">${anyOn ? 'Available' : 'OFF'}</span>
+              </div>
+              <h4 class="font-bold text-slate-900 text-xs sm:text-sm line-clamp-2">${esc(p.name)}</h4>
+              <div class="flex flex-wrap gap-1 mt-1.5">${portions}</div>
+            </div>
+            <div class="flex items-center justify-between pt-2 mt-2 border-t border-slate-100">
+              <span class="font-extrabold text-slate-900 text-sm">৳ ${money(minPrice)}${p.variants.length > 1 ? '+' : ''}</span>
+              <span class="w-6 h-6 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center font-bold">+</span>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    function promptDishPortion(id) {
+      const p = menuItems.find(x => x.id === id);
+      if (!p) return;
+      const onVariants = p.variants.filter(v => v.on !== false);
+      if (!onVariants.length) { showToast('This dish is currently OFF', 'warning'); return; }
+      if (p.variants.length === 1) {
+        addDishToCart(p.id, p.variants[0].size);
+        return;
+      }
+      document.getElementById('portion-modal-name').innerText = p.name;
+      document.getElementById('portion-options').innerHTML = p.variants.map(v => {
+        const off = v.on === false;
+        return `
+        <button ${off ? 'disabled' : ''} onclick="addDishToCart('${esc(p.id)}','${esc(v.size)}'); closeModal('portion-modal');" class="p-3 border border-slate-200 rounded-xl text-left transition ${off ? 'opacity-40 cursor-not-allowed' : 'hover:border-rose-500 hover:bg-rose-50'}">
+          <div class="font-bold text-slate-900 text-sm">${esc(v.size)}</div>
+          <div class="text-rose-600 font-extrabold text-sm mt-0.5">৳ ${money(v.price)}</div>
+          <div class="text-[10px] mt-0.5 font-bold ${off ? 'text-rose-500' : 'text-emerald-600'}">${off ? 'OFF' : 'Available'}</div>
+        </button>`;
+      }).join('');
+      openModal('portion-modal');
+    }
+
+    function addDishToCart(prodId, size) {
+      const p = menuItems.find(x => x.id === prodId);
+      const v = p && p.variants.find(x => x.size === size);
+      if (!v) return;
+      if (v.on === false) { showToast('This portion is OFF!', 'error'); return; }
+
+      const key = `${p.id}_${size}`;
+      const existing = cart.find(i => i.key === key);
+      if (existing) {
+        existing.qty++;
+      } else {
+        cart.push({
+          key, productId: p.id, name: p.name, category: p.category,
+          size, sku: v.sku, price: Number(v.price), buyPrice: Number(p.buyPrice) || 0, qty: 1, note: ''
+        });
+      }
+      renderCart();
+      showToast(`Added ${p.name} (${size})`, 'success');
+    }
+
+    function updateCartQty(key, delta) {
+      const item = cart.find(i => i.key === key);
+      if (!item) return;
+      const next = item.qty + delta;
+      if (next <= 0) cart = cart.filter(i => i.key !== key);
+      else item.qty = next;
+      renderCart();
+    }
+
+    function addDishNote(key) {
+      const item = cart.find(i => i.key === key);
+      if (!item) return;
+      const n = prompt('Kitchen Note (e.g. Less spicy, Extra cheese):', item.note || '');
+      if (n !== null) { item.note = n.trim(); renderCart(); }
+    }
+
+    function clearCart() {
+      cart = [];
+      paidManuallyEdited = false;
+      renderCart();
+    }
+
+    function renderCart() {
+      const box = document.getElementById('cart-items-container');
+      const count = cart.reduce((a, i) => a + i.qty, 0);
+      document.getElementById('cart-item-count').innerText = `${count} items`;
+
+      if (!cart.length) {
+        box.innerHTML = `<div class="text-center py-12 text-slate-400"><p class="text-xs font-semibold">Cart is empty</p><span class="text-[11px]">Tap any dish on the left to start an order</span></div>`;
+        updateCartTotals();
+        return;
+      }
+
+      box.innerHTML = cart.map(i => `
+        <div class="py-2 flex items-center justify-between gap-2 text-xs">
+          <div class="flex-1 min-w-0">
+            <div class="font-bold text-slate-900 truncate">${esc(i.name)}</div>
+            <div class="flex items-center gap-1.5 mt-0.5">
+              <span class="px-1.5 py-0.5 bg-rose-50 text-rose-700 font-bold rounded text-[10px]">${esc(i.size)}</span>
+              <span class="text-slate-400">৳${money(i.price)}</span>
+              <button onclick="addDishNote('${esc(i.key)}')" class="text-[10px] text-amber-600 hover:underline font-semibold">${i.note ? '📝 ' + esc(i.note) : '+ Note'}</button>
+            </div>
+          </div>
+          <div class="flex items-center gap-1">
+            <button onclick="updateCartQty('${esc(i.key)}', -1)" class="w-6 h-6 rounded bg-slate-100 hover:bg-slate-200 font-bold">-</button>
+            <span class="w-6 text-center font-bold">${i.qty}</span>
+            <button onclick="updateCartQty('${esc(i.key)}', 1)" class="w-6 h-6 rounded bg-slate-100 hover:bg-slate-200 font-bold">+</button>
+          </div>
+          <div class="w-16 text-right font-bold text-slate-900">৳ ${money(i.price * i.qty)}</div>
+        </div>`).join('');
+
+      updateCartTotals();
+    }
+
+    function updateCartTotals() {
+      const subtotal = cart.reduce((a, i) => a + i.price * i.qty, 0);
+      document.getElementById('pos-subtotal').innerText = `৳ ${money(subtotal)}`;
+
+      const discVal = Math.max(0, Number(document.getElementById('pos-discount').value) || 0);
+      const discMode = document.getElementById('pos-discount-mode').value;
+      const discount = Math.min(subtotal, discMode === 'percent' ? (subtotal * discVal) / 100 : discVal);
+
+      const taxPct = Math.max(0, Number(document.getElementById('pos-tax').value) || 0);
+      const service = Math.max(0, Number(document.getElementById('pos-service').value) || 0);
+      const tax = ((subtotal - discount) * taxPct) / 100;
+
+      const grandTotal = Math.round(subtotal - discount + tax + service);
+      const gtEl = document.getElementById('pos-grand-total');
+      gtEl.innerText = `৳ ${money(grandTotal)}`;
+      gtEl.dataset.val = grandTotal;
+
+      const paidEl = document.getElementById('pos-paid-amount');
+      if (!paidManuallyEdited || !cart.length) {
+        paidEl.value = grandTotal > 0 ? grandTotal : '';
+        if (!cart.length) paidManuallyEdited = false;
+      }
+      calculateChange();
+      return { subtotal, discount, tax, service, grandTotal };
+    }
+
+    function calculateChange() {
+      const gt = Number(document.getElementById('pos-grand-total').dataset.val) || 0;
+      const paid = Number(document.getElementById('pos-paid-amount').value) || 0;
+      document.getElementById('pos-change-due').innerText = money(Math.max(0, paid - gt));
+    }
+
+    /* -------------------- KITCHEN ORDER TICKET (KOT) -------------------- */
+    function sendToKitchenKOT() {
+      if (!cart.length) { showToast('Add items before sending KOT!', 'warning'); return; }
+      const orderType = document.querySelector('input[name="order-type"]:checked').value;
+      const table = orderType === 'Dine-In' ? document.getElementById('cart-table-select').value : orderType;
+      const custName = document.getElementById('cart-cust-name').value.trim() || 'Guest';
+
+      // Merge if table already has an open KOT
+      let kot = activeKots.find(k => k.table === table && orderType === 'Dine-In');
+      if (kot) {
+        cart.forEach(ci => {
+          const ex = kot.items.find(x => x.key === ci.key);
+          if (ex) ex.qty += ci.qty;
+          else kot.items.push({ ...ci });
+        });
+        kot.updatedAt = new Date().toISOString();
+      } else {
+        kot = {
+          id: 'KOT-' + Date.now().toString().slice(-5),
+          time: new Date().toISOString(),
+          orderType,
+          table,
+          customerName: custName,
+          items: cart.map(i => ({ ...i }))
+        };
+        activeKots.unshift(kot);
+      }
+
+      saveLS(K_KOTS, activeKots);
+      updateKotBadges();
+      populateTablesDropdown();
+
+      // Print KOT Ticket
+      printKotSlip(kot);
+      clearCart();
+      showToast(`🔥 Sent to Kitchen (${kot.id} • ${table})`, 'success');
+    }
+
+    function printKotSlip(kot) {
+      const mount = document.getElementById('isolated-print-mount');
+      const timeStr = new Date(kot.time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+      mount.innerHTML = `
+        <div class="rdm" style="width:76mm;padding:4px;">
+          ${logoImg('logo-img')}
+          <h1>KITCHEN ORDER (KOT)</h1>
+          <div class="c sm">${esc(shopConfig.name)}</div>
+          <div class="sep"></div>
+          <div class="r"><span>KOT No:</span><b>${esc(kot.id)}</b></div>
+          <div class="r"><span>Table / Type:</span><b>${esc(kot.table)}</b></div>
+          <div class="r"><span>Time:</span><span>${timeStr}</span></div>
+          <div class="sep"></div>
+          <table>
+            <thead><tr><th>Dish & Portion</th><th class="n">Qty</th></tr></thead>
+            <tbody>
+              ${kot.items.map(i => `
+                <tr>
+                  <td><b>${esc(i.name)}</b> (${esc(i.size)})${i.note ? `<div class="sm">* Note: ${esc(i.note)}</div>` : ''}</td>
+                  <td class="n" style="font-size:14px;"><b>${i.qty}</b></td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+          <div class="sep"></div>
+        </div>`;
+            runPrint(mount, '80mm');
+    }
+
+    function updateKotBadges() {
+      const c = activeKots.length;
+      document.getElementById('topbar-kot-count').innerText = c;
+      document.getElementById('mob-kot-count').innerText = c;
+    }
+
+    function renderKotScreen() {
+      const grid = document.getElementById('kot-grid');
+      if (!activeKots.length) {
+        grid.innerHTML = `<div class="col-span-full rd-card p-12 text-center text-slate-400">No active kitchen orders right now.</div>`;
+        return;
+      }
+      grid.innerHTML = activeKots.map(k => {
+        const mins = Math.max(1, Math.round((Date.now() - new Date(k.time).getTime()) / 60000));
+        const total = k.items.reduce((a, i) => a + i.price * i.qty, 0);
+        return `
+          <div class="rd-card p-4 flex flex-col justify-between border-t-4 border-t-amber-500">
+            <div>
+              <div class="flex justify-between items-center pb-2 border-b border-slate-100">
+                <span class="font-extrabold text-base text-slate-900">${esc(k.table)}</span>
+                <span class="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">${mins} min ago</span>
+              </div>
+              <div class="text-[11px] text-slate-500 mt-1">${esc(k.id)} • ${esc(k.customerName)}</div>
+              <div class="my-3 space-y-1.5 divide-y divide-slate-100 text-xs">
+                ${k.items.map(i => `
+                  <div class="pt-1.5 flex justify-between">
+                    <div><b>${esc(i.name)}</b> <span class="text-slate-500">(${esc(i.size)})</span>${i.note ? `<div class="text-rose-600 text-[11px]">Note: ${esc(i.note)}</div>` : ''}</div>
+                    <span class="font-extrabold text-sm">×${i.qty}</span>
+                  </div>`).join('')}
+              </div>
+            </div>
+            <div class="pt-3 border-t border-slate-200 space-y-2">
+              <div class="flex justify-between font-bold text-sm"><span>Running Bill:</span><span>৳ ${money(total)}</span></div>
+              <div class="grid grid-cols-2 gap-2">
+                <button onclick="printKotSlip(activeKots.find(x=>x.id==='${esc(k.id)}'))" class="py-2 rd-btn-outline text-xs">Reprint KOT</button>
+                <button onclick="loadKotToCart('${esc(k.id)}')" class="py-2 rd-btn-primary text-xs">Settle & Bill</button>
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    function loadKotToCart(kotId) {
+      const idx = activeKots.findIndex(k => k.id === kotId);
+      if (idx < 0) return;
+      const kot = activeKots[idx];
+      cart = kot.items.map(i => ({ ...i }));
+      activeKots.splice(idx, 1);
+      saveLS(K_KOTS, activeKots);
+      updateKotBadges();
+
+      switchTab('pos');
+      if (kot.orderType === 'Dine-In') {
+        document.querySelector('input[name="order-type"][value="Dine-In"]').checked = true;
+        populateTablesDropdown();
+        document.getElementById('cart-table-select').value = kot.table;
+      }
+      document.getElementById('cart-cust-name').value = kot.customerName;
+      renderCart();
+      showToast(`Loaded ${kot.table} bill into POS for checkout`, 'info');
+    }
+
+    /* -------------------- FINAL CHECKOUT & MEMO -------------------- */
+    function processCheckout() {
+      if (!cart.length) { showToast('Cart is empty!', 'error'); return; }
+      const totals = updateCartTotals();
+      const paidRaw = parseFloat(document.getElementById('pos-paid-amount').value);
+      const paid = isNaN(paidRaw) ? totals.grandTotal : paidRaw;
+      const payMethod = document.querySelector('input[name="pay-method"]:checked').value;
+      const orderType = document.querySelector('input[name="order-type"]:checked').value;
+      const table = orderType === 'Dine-In' ? document.getElementById('cart-table-select').value : orderType;
+
+      const sale = {
+        id: 'INV-' + Date.now().toString().slice(-6),
+        date: new Date().toISOString(),
+        orderType,
+        table,
+        customerName: document.getElementById('cart-cust-name').value.trim() || 'Walk-in Guest',
+        customerPhone: document.getElementById('cart-cust-phone').value.trim() || 'N/A',
+        paymentMethod: payMethod,
+        items: cart.map(i => ({ ...i })),
+        subtotal: totals.subtotal,
+        discount: totals.discount,
+        tax: totals.tax,
+        service: totals.service,
+        grandTotal: totals.grandTotal,
+        paidAmount: paid,
+        changeAmount: Math.max(0, paid - totals.grandTotal)
+      };
+
+      sales.unshift(sale);
+      saveLS(K_SALES, sales);
+
+      clearCart();
+      document.getElementById('cart-cust-name').value = '';
+      document.getElementById('cart-cust-phone').value = '';
+      document.getElementById('pos-discount').value = '0';
+      document.getElementById('pos-service').value = '0';
+      // reset payment method back to Cash for the next order
+      const cashRadio = document.querySelector('input[name="pay-method"][value="Cash"]');
+      if (cashRadio) cashRadio.checked = true;
+      renderPosCatalog();
+
+      currentViewingSale = sale;
+      setPrinterFormat(shopConfig.defaultPrinter || '80mm');
+      openModal('receipt-modal');
+      showToast(`Invoice ${sale.id} completed!`, 'success');
+    }
+
+    function setPrinterFormat(fmt) {
+      activePrinterFormat = fmt;
+      ['80mm', '58mm', 'a4'].forEach(f => {
+        const b = document.getElementById('fmt-' + f);
+        if (b) b.className = f === fmt ? 'px-2.5 py-1 rounded font-bold bg-white shadow-xs' : 'px-2.5 py-1 rounded font-semibold text-slate-600';
+      });
+      const area = document.getElementById('print-area');
+      area.className = `paper-${fmt} p-3`;
+      renderReceiptTemplate();
+    }
+
+    function renderReceiptTemplate() {
+      const s = currentViewingSale;
+      const area = document.getElementById('print-area');
+      if (!s || !area) return;
+      const is58 = activePrinterFormat === '58mm';
+      const big = activePrinterFormat === 'a4';
+      const dtStr = new Date(s.date).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' });
+      const due = Math.max(0, s.grandTotal - s.paidAmount);
+
+      area.innerHTML = `
+        <div class="rdm ${is58 ? 'w58' : ''} ${big ? 'big' : ''}">
+          <div class="${big ? '' : 'c'}">
+            ${logoImg('logo-img')}
+            <h1>${esc(shopConfig.name)}</h1>
+            <div class="sm">${esc(shopConfig.tagline)}</div>
+            <div class="sm">${esc(shopConfig.address)}</div>
+            <div class="sm">Phone: ${esc(shopConfig.phone)}</div>
+          </div>
+          <div class="sep"></div>
+          <div class="r"><span>Memo No:</span><b>${esc(s.id)}</b></div>
+          <div class="r"><span>Date:</span><span>${dtStr}</span></div>
+          <div class="r"><span>Order / Table:</span><b>${esc(s.table)}</b></div>
+          <div class="r"><span>Guest:</span><span>${esc(s.customerName)}</span></div>
+          <div class="r"><span>Payment:</span><b>${esc(s.paymentMethod)}</b></div>
+          <div class="sep"></div>
+          <table>
+            <thead><tr><th>Dish</th><th class="n">Qty</th>${is58 ? '' : '<th class="n">Rate</th>'}<th class="n">Total</th></tr></thead>
+            <tbody>
+              ${s.items.map(i => `
+                <tr>
+                  <td><b>${esc(i.name)}</b><div class="sm">${esc(i.size)}</div></td>
+                  <td class="n">${i.qty}</td>
+                  ${is58 ? '' : `<td class="n">${money(i.price)}</td>`}
+                  <td class="n"><b>${money(i.price * i.qty)}</b></td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+          <div class="sep"></div>
+          <div class="r"><span>Subtotal</span><span>Tk ${money(s.subtotal)}</span></div>
+          ${s.discount > 0 ? `<div class="r"><span>Discount</span><span>- Tk ${money(s.discount)}</span></div>` : ''}
+          ${s.tax > 0 ? `<div class="r"><span>VAT</span><span>+ Tk ${money(s.tax)}</span></div>` : ''}
+          ${s.service > 0 ? `<div class="r"><span>Service Charge</span><span>+ Tk ${money(s.service)}</span></div>` : ''}
+          <div class="r t"><span>Grand Total</span><span>Tk ${money(s.grandTotal)}</span></div>
+          <div class="r"><span>Paid</span><span>Tk ${money(s.paidAmount)}</span></div>
+          ${s.changeAmount > 0 ? `<div class="r"><span>Change</span><span>Tk ${money(s.changeAmount)}</span></div>` : ''}
+          ${due > 0 ? `<div class="r"><span>Due</span><span>Tk ${money(due)}</span></div>` : ''}
+          ${payQrHtml(s, is58, big)}
+          <div class="c">
+            <svg id="memo-barcode" class="bc"></svg>
+            <div class="sm" style="margin-top:4px">${esc(shopConfig.policy)}</div>
+          </div>
+        </div>`;
+
+      try {
+        JsBarcode('#memo-barcode', s.id, { format: 'CODE128', width: is58 ? 1.2 : 1.5, height: 28, displayValue: true, fontSize: 10, margin: 0 });
+      } catch {}
+    }
+
+    function runPrint(mount, fmt) {
+      const wMm = fmt === '80mm' ? 80 : fmt === '58mm' ? 58 : 210;
+      let sizeRule = 'A4 portrait';
+
+      if (fmt !== 'a4') {
+        // temporarily render offscreen to measure real height
+        mount.classList.remove('hidden');
+        mount.style.cssText = `display:block;position:absolute;left:-9999px;top:0;visibility:hidden;box-sizing:border-box;width:${wMm}mm;`;
+        const hMm = Math.ceil(mount.scrollHeight * 25.4 / 96) + 6;
+        sizeRule = `${wMm}mm ${hMm}mm`;
+       }
+
+    // lock width for the real print
+      mount.style.cssText = fmt === 'a4' ? '' : `box-sizing:border-box;width:${wMm}mm;`;
+      document.getElementById('dynamic-print-style').innerHTML =
+     `@page{size:${sizeRule};margin:0}` +
+      (fmt === 'a4' ? '' : `@media print{#isolated-print-mount{width:${wMm}mm !important;padding:0 2mm !important;box-sizing:border-box !important;margin:0 !important}}`);
+
+  mount.classList.remove('hidden');
+  setTimeout(() => {
+    window.print();
+    setTimeout(() => { mount.classList.add('hidden'); mount.style.cssText = ''; mount.innerHTML = ''; }, 300);
+  }, 150);
+  }
+  function triggerInvoicePrint() {
+  const mount = document.getElementById('isolated-print-mount');
+  mount.innerHTML = document.getElementById('print-area').innerHTML;
+  runPrint(mount, activePrinterFormat);
+  }
+
+    /* -------------------- MENU & PORTIONS CRUD -------------------- */
+    function renderInventory() {
+      const tbody = document.getElementById('inventory-tbody');
+      const catSel = document.getElementById('inv-cat-select');
+
+      // fill category dropdown (keep current selection)
+      const curCat = catSel.value || 'all';
+      catSel.innerHTML = `<option value="all">All Categories</option>` +
+        (shopConfig.categories || []).map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+      catSel.value = (curCat === 'all' || (shopConfig.categories || []).includes(curCat)) ? curCat : 'all';
+
+      const q = (document.getElementById('inv-search').value || '').toLowerCase().trim();
+      const cat = catSel.value;
+      const sort = document.getElementById('inv-sort').value;
+
+      let list = menuItems.filter(p => {
+        const matchCat = cat === 'all' || p.category === cat;
+        const matchQ = !q || p.name.toLowerCase().includes(q) || p.variants.some(v => String(v.sku).includes(q));
+        return matchCat && matchQ;
+      });
+
+      const maxPrice = (p) => Math.max(...p.variants.map(v => Number(v.price) || 0));
+      const isOn = (p) => p.variants.some(v => v.on !== false);
+      if (sort === 'price_desc') list.sort((a, b) => maxPrice(b) - maxPrice(a));
+      else if (sort === 'stock_asc') list.sort((a, b) => Number(isOn(a)) - Number(isOn(b)));
+      else list.sort((a, b) => a.name.localeCompare(b.name));
+
+      if (!list.length) {
+        tbody.innerHTML = '<tr><td colspan="6" class="py-10 text-center text-slate-400">No dishes found.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = list.map(p => {
+        const anyOn = p.variants.some(v => v.on !== false);
+        const badges = p.variants.map((v, vi) => {
+        const off = v.on === false;
+        return `<button type="button" onclick="toggleVariant('${esc(p.id)}', ${vi})" title="Click to turn ${off ? 'ON' : 'OFF'}" class="inline-block border px-2 py-0.5 rounded text-xs mr-1 mb-1 transition ${off ? 'bg-rose-50 border-rose-200 text-rose-400 line-through' : 'bg-emerald-50 border-emerald-200 text-slate-700 hover:bg-emerald-100'}"><b>${esc(v.size)}:</b> ৳${v.price} <span class="no-underline font-bold ${off ? 'text-rose-500' : 'text-emerald-600'}">${off ? 'OFF' : 'ON'}</span></button>`;
+        }).join('');
+        const toggle = `
+          <button onclick="toggleDish('${esc(p.id)}')" class="relative inline-flex h-6 w-11 items-center rounded-full transition ${anyOn ? 'bg-emerald-500' : 'bg-slate-300'}">
+            <span class="inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${anyOn ? 'translate-x-5' : 'translate-x-0.5'}"></span>
+          </button>
+          <div class="text-[10px] font-bold mt-0.5 ${anyOn ? 'text-emerald-600' : 'text-slate-400'}">${anyOn ? 'ON' : 'OFF'}</div>`;
+        return `
+          <tr class="${anyOn ? '' : 'bg-slate-50 opacity-70'}">
+            <td class="py-3 px-4 font-bold text-slate-900">${esc(p.name)}</td>
+            <td class="py-3 px-3"><span class="px-2 py-0.5 bg-rose-50 text-rose-700 rounded-full text-xs font-semibold">${esc(p.category)}</span></td>
+            <td class="py-3 px-3">${badges}</td>
+            <td class="py-3 px-3 text-right">৳ ${money(p.buyPrice)}</td>
+            <td class="py-3 px-3 text-center">${toggle}</td>
+            <td class="py-3 px-4 text-center space-x-1">
+              <button onclick="editProduct('${esc(p.id)}')" class="px-2.5 py-1 bg-blue-50 text-blue-700 rounded-lg font-semibold text-xs">Edit</button>
+              <button onclick="deleteProduct('${esc(p.id)}')" class="px-2.5 py-1 bg-rose-50 text-rose-700 rounded-lg font-semibold text-xs">Delete</button>
+            </td>
+          </tr>`;
+      }).join('');
+    }
+
+    function openAddProductModal() {
+      document.getElementById('product-modal-title').innerText = 'Add New Dish';
+      document.getElementById('form-prod-id').value = '';
+      document.getElementById('form-prod-name').value = '';
+      document.getElementById('form-prod-buy').value = '0';
+      document.getElementById('form-prod-category').innerHTML = shopConfig.categories.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+      document.getElementById('variants-container').innerHTML = '';
+      addVariantRow('Regular', 250, true);
+      openModal('product-modal');
+    }
+
+    function editProduct(id) {
+      const p = menuItems.find(x => x.id === id);
+      if (!p) return;
+      document.getElementById('product-modal-title').innerText = 'Edit Dish & Portions';
+      document.getElementById('form-prod-id').value = p.id;
+      document.getElementById('form-prod-name').value = p.name;
+      document.getElementById('form-prod-buy').value = p.buyPrice || 0;
+      document.getElementById('form-prod-category').innerHTML = shopConfig.categories.map(c => `<option value="${esc(c)}" ${c===p.category?'selected':''}>${esc(c)}</option>`).join('');
+      document.getElementById('variants-container').innerHTML = '';
+      p.variants.forEach(v => addVariantRow(v.size, v.price, v.on !== false, v.sku));
+      openModal('product-modal');
+    }
+
+    function addVariantRow(size = '', price = 200, on = true, sku = '') {
+  const box = document.getElementById('variants-container');
+  const code = sku || String(200000 + Math.floor(Math.random() * 90000));
+  const div = document.createElement('div');
+  div.className = 'v-row grid grid-cols-12 gap-1.5 items-center bg-white p-1.5 rounded-lg border';
+  div.innerHTML = `
+    <input type="text" placeholder="Portion" value="${esc(size)}" required class="v-size col-span-6 px-2 py-1 border rounded font-bold">
+    <input type="number" placeholder="Price" value="${price}" required class="v-price col-span-3 px-2 py-1 border rounded font-bold">
+    <label class="col-span-2 flex flex-col items-center cursor-pointer select-none" title="Portion ON/OFF">
+      <input type="checkbox" class="v-on sr-only peer" ${on ? 'checked' : ''}>
+      <span class="block relative h-5 w-9 rounded-full bg-slate-300 transition peer-checked:bg-emerald-500 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:h-4 after:w-4 after:rounded-full after:bg-white after:shadow after:transition peer-checked:after:translate-x-4"></span>
+      <span class="text-[9px] font-bold text-rose-500 peer-checked:hidden">OFF</span>
+      <span class="text-[9px] font-bold text-emerald-600 hidden peer-checked:block">ON</span>
+    </label>
+    <input type="hidden" class="v-sku" value="${esc(code)}">
+    <button type="button" onclick="this.parentElement.remove()" class="col-span-1 text-rose-500 font-bold text-center">✕</button>`;
+  box.appendChild(div);
+  }
+
+    function toggleDish(pid) {
+      const p = menuItems.find(x => x.id === pid);
+      if (!p) return;
+      const turnOn = !p.variants.some(v => v.on !== false); // all OFF -> turn all ON, else turn all OFF
+      p.variants.forEach(v => v.on = turnOn);
+      saveLS(K_MENU, menuItems);
+      renderInventory();
+      renderPosCatalog();
+      showToast(`${p.name} is now ${turnOn ? 'ON' : 'OFF'}`, 'info');
+    }
+
+    function toggleVariant(pid, idx) {
+      const p = menuItems.find(x => x.id === pid);
+      if (!p || !p.variants[idx]) return;
+      const v = p.variants[idx];
+      v.on = v.on === false ? true : false;
+      saveLS(K_MENU, menuItems);
+      renderInventory();
+      renderPosCatalog();
+      showToast(`${p.name} (${v.size}) is now ${v.on ? 'ON' : 'OFF'}`, 'info');
+    }
+    
+    function handleProductFormSubmit(e) {
+      e.preventDefault();
+      const id = document.getElementById('form-prod-id').value;
+      const name = document.getElementById('form-prod-name').value.trim();
+      const category = document.getElementById('form-prod-category').value;
+      const buyPrice = Number(document.getElementById('form-prod-buy').value) || 0;
+      const variants = Array.from(document.querySelectorAll('.v-row')).map(r => ({
+        size: r.querySelector('.v-size').value.trim(),
+        price: Number(r.querySelector('.v-price').value) || 0,
+        on: r.querySelector('.v-on').checked,
+        sku: r.querySelector('.v-sku').value
+      })).filter(v => v.size);
+
+      if (!variants.length) { showToast('Add at least one portion!', 'warning'); return; }
+
+      if (id) {
+        const p = menuItems.find(x => x.id === id);
+        if (p) Object.assign(p, { name, category, buyPrice, variants });
+      } else {
+        menuItems.unshift({ id: 'm_' + Date.now(), name, category, buyPrice, variants });
+      }
+      saveLS(K_MENU, menuItems);
+      closeModal('product-modal');
+      renderInventory();
+      renderPosCatalog();
+      showToast('Dish saved successfully!', 'success');
+    }
+
+    function deleteProduct(id) {
+      if (!confirm('Delete this dish permanently?')) return;
+      menuItems = menuItems.filter(p => p.id !== id);
+      saveLS(K_MENU, menuItems);
+      renderInventory();
+      renderPosCatalog();
+    }
+
+    /* -------------------- TABLES & CATEGORIES -------------------- */
+    function renderTablesView() {
+      const grid = document.getElementById('tables-grid');
+      grid.innerHTML = tables.map((t, idx) => {
+        const running = activeKots.find(k => k.table === t);
+        return `
+          <div class="rd-card p-4 flex flex-col justify-between ${running ? 'border-amber-400 bg-amber-50/40' : ''}">
+            <div class="flex justify-between items-start">
+              <span class="font-bold text-slate-900">${esc(t)}</span>
+              <button onclick="tables.splice(${idx},1); saveLS(K_TABLES,tables); renderTablesView(); populateTablesDropdown();" class="text-slate-400 hover:text-rose-600 text-xs">✕</button>
+            </div>
+            <div class="mt-3 text-xs font-bold ${running ? 'text-amber-700' : 'text-emerald-600'}">
+              ${running ? `Occupied (${running.items.length} items)` : 'Available'}
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    function addNewTable() {
+      const name = prompt('Enter Table Name (e.g. Table 07):');
+      if (name && name.trim()) {
+        tables.push(name.trim());
+        saveLS(K_TABLES, tables);
+        renderTablesView();
+        populateTablesDropdown();
+      }
+    }
+
+    function renderCategoriesView() {
+      const box = document.getElementById('cat-list');
+      box.innerHTML = shopConfig.categories.map((c, i) => `
+        <div class="flex items-center justify-between p-2.5 border border-slate-200 rounded-xl text-sm">
+          <span class="font-bold">${esc(c)}</span>
+          <button onclick="shopConfig.categories.splice(${i},1); saveLS(K_CFG,shopConfig); renderCategoriesView();" class="text-rose-600 text-xs font-bold">Remove</button>
+        </div>`).join('');
+    }
+
+    function addCategory() {
+      const inp = document.getElementById('cat-add-input');
+      const val = inp.value.trim();
+      if (!val) return;
+      if (!shopConfig.categories.includes(val)) {
+        shopConfig.categories.push(val);
+        saveLS(K_CFG, shopConfig);
+        inp.value = '';
+        renderCategoriesView();
+      }
+    }
+
+    /* -------------------- REPORTS & DASHBOARD -------------------- */
+    function getFilteredSales() {
+      const from = document.getElementById('rep-from').value;
+      const to = document.getElementById('rep-to').value;
+      const type = document.getElementById('rep-type').value;
+      const q = (document.getElementById('rep-search').value || '').toLowerCase();
+      return sales.filter(s => {
+        const d = s.date.slice(0, 10);
+        if (from && d < from) return false;
+        if (to && d > to) return false;
+        if (type !== 'all' && s.orderType !== type) return false;
+        if (q && !(s.id.toLowerCase().includes(q) || s.customerName.toLowerCase().includes(q) || s.customerPhone.includes(q))) return false;
+        return true;
+      });
+    }
+
+    function renderSalesReportView() {
+      const list = getFilteredSales();
+      document.getElementById('rep-count').innerText = list.length;
+
+      const gross = list.reduce((a, s) => a + s.subtotal, 0);
+      const disc = list.reduce((a, s) => a + s.discount, 0);
+      const net = list.reduce((a, s) => a + s.grandTotal, 0);
+      const cash = list.filter(s => s.paymentMethod === 'Cash').reduce((a, s) => a + Math.min(s.paidAmount, s.grandTotal), 0);
+      const digital = list.filter(s => s.paymentMethod !== 'Cash' && s.paymentMethod !== 'Due').reduce((a, s) => a + Math.min(s.paidAmount, s.grandTotal), 0);
+
+      document.getElementById('summary-two-col-tbody').innerHTML = `
+        <tr><td class="py-2.5 px-5 font-bold">Gross Sales</td><td class="py-2.5 px-5 font-bold">৳ ${money(gross)}</td></tr>
+        <tr><td class="py-2.5 px-5 font-bold">Discount</td><td class="py-2.5 px-5 font-bold text-rose-600">৳ ${money(disc)}</td></tr>
+        <tr class="bg-emerald-50"><td class="py-2.5 px-5 font-extrabold">Net Sales</td><td class="py-2.5 px-5 font-extrabold text-emerald-700">৳ ${money(net)}</td></tr>
+        <tr><td class="py-2.5 px-5 font-bold">Cash Collected</td><td class="py-2.5 px-5 font-bold">৳ ${money(cash)}</td></tr>
+        <tr><td class="py-2.5 px-5 font-bold">Digital (bKash / Nagad / Card)</td><td class="py-2.5 px-5 font-bold">৳ ${money(digital)}</td></tr>
+        <tr><td class="py-2.5 px-5 font-bold">Total Invoices</td><td class="py-2.5 px-5 font-bold">${list.length}</td></tr>`;
+
+      const tbody = document.getElementById('sales-tbody');
+      if (!list.length) {
+        tbody.innerHTML = '<tr><td colspan="8" class="py-10 text-center text-slate-400">No orders found in this period.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = list.map(s => `
+        <tr>
+          <td class="py-2.5 px-4 font-bold">${esc(s.id)}</td>
+          <td class="py-2.5 px-3 text-xs text-slate-500">${new Date(s.date).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })}</td>
+          <td class="py-2.5 px-3"><span class="px-2 py-0.5 bg-slate-100 rounded text-xs font-bold">${esc(s.table)}</span></td>
+          <td class="py-2.5 px-3">${esc(s.customerName)}</td>
+          <td class="py-2.5 px-3 text-xs">${s.items.map(i => `${esc(i.name)} (${esc(i.size)}) ×${i.qty}`).join(', ')}</td>
+          <td class="py-2.5 px-3 text-right text-rose-600">${s.discount > 0 ? '৳' + money(s.discount) : '-'}</td>
+          <td class="py-2.5 px-3 text-right font-bold">৳ ${money(s.grandTotal)}</td>
+          <td class="py-2.5 px-4 text-center space-x-1">
+            <button onclick="currentViewingSale=sales.find(x=>x.id==='${esc(s.id)}'); setPrinterFormat(shopConfig.defaultPrinter); openModal('receipt-modal');" class="px-2.5 py-1 bg-slate-100 rounded text-xs font-bold">Memo</button>
+            <button onclick="deleteSale('${esc(s.id)}')" class="px-2.5 py-1 bg-rose-50 text-rose-600 rounded text-xs font-bold">Delete</button>
+          </td>
+        </tr>`).join('');
+    }
+
+    function deleteSale(id) {
+      if (!confirm('Delete this invoice permanently?')) return;
+      sales = sales.filter(s => s.id !== id);
+      saveLS(K_SALES, sales);
+      renderSalesReportView();
+    }
+
+  async function downloadSalesReportPDF() {
+  const logo = await getLogoForPdf();
+  const el = document.getElementById('pdf-render-canvas');
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid #e11d2e">
+      <img src="${logo}" width="60" height="60" style="width:60px;height:60px;object-fit:contain;flex-shrink:0" alt="logo">
+      <div>
+        <div style="font-size:22px;font-weight:800;color:#101828">${esc(shopConfig.name)}</div>
+        <div style="font-size:11px;color:#667085">${esc(shopConfig.address)} • ${esc(shopConfig.phone)}</div>
+        <div style="font-size:11px;color:#667085">Sales report: ${esc(document.getElementById('rep-from').value)} to ${esc(document.getElementById('rep-to').value)}</div>
+      </div>
+    </div>` + document.getElementById('view-reports').innerHTML;
+  await new Promise(r => setTimeout(r, 150));
+  html2pdf().set({ margin: 8, filename: `Restaurant_Report_${todayYMD()}.pdf`, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4' } }).from(el).save();
+  }
+
+    function exportSalesCSV() {
+      const list = getFilteredSales();
+      let csv = 'Invoice,Date,Table,Customer,Total,Payment\n';
+      list.forEach(s => { csv += `"${s.id}","${s.date}","${s.table}","${s.customerName}",${s.grandTotal},"${s.paymentMethod}"\n`; });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+      a.download = `sales_${todayYMD()}.csv`;
+      a.click();
+    }
+
+        let dashPeriod = 'today';
+    function setDashPeriod(p) { dashPeriod = p; renderDashboard(); }
+
+    function renderDashboard() {
+      const dYmd = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      const now = new Date(), t = dYmd(now);
+      let from = t;
+      if (dashPeriod === 'week') { const d = new Date(now); d.setDate(d.getDate() - 6); from = dYmd(d); }
+      if (dashPeriod === 'month') from = t.slice(0, 8) + '01';
+      const label = { today: 'Today', week: 'Last 7 Days', month: 'This Month' }[dashPeriod];
+      const inP = iso => { const d = dYmd(new Date(iso)); return d >= from && d <= t; };
+
+      const ps = sales.filter(s => inP(s.date));
+      const pe = expenses.filter(e => inP(e.date));
+      const rev = ps.reduce((a, s) => a + s.grandTotal, 0);
+      const cost = ps.reduce((a, s) => a + s.items.reduce((x, i) => x + (i.buyPrice || 0) * i.qty, 0), 0);
+      const exp = pe.reduce((a, e) => a + e.amount, 0);
+      const profit = rev - cost - exp;
+      const orders = ps.length;
+      const avg = orders ? rev / orders : 0;
+      const margin = rev ? (profit / rev) * 100 : 0;
+      const dues = sales.reduce((a, s) => a + Math.max(0, s.grandTotal - s.paidAmount), 0);
+
+      document.getElementById('dash-date').innerText = now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) + ' • Showing: ' + label;
+      document.getElementById('dash-period').innerHTML = ['today', 'week', 'month'].map(p =>
+        `<button onclick="setDashPeriod('${p}')" class="px-3 py-1.5 rounded-md font-bold ${dashPeriod === p ? 'bg-white shadow text-rose-600' : 'text-slate-500'}">${{ today: 'Today', week: '7 Days', month: 'This Month' }[p]}</button>`).join('');
+
+      /* ---- Status banner + alerts ---- */
+      let tone, icon, title, sub;
+      if (!orders) { tone = 'amber'; icon = '🕐'; title = `No sales yet (${label})`; sub = 'Tap "+ New Order" to take the first order.'; }
+      else if (profit < 0) { tone = 'rose'; icon = '⚠️'; title = `Running at a loss: ৳ ${money(-profit)}`; sub = 'Food cost + expenses are higher than sales in this period.'; }
+      else { tone = 'emerald'; icon = '✅'; title = `Doing well! Net profit ৳ ${money(profit)}`; sub = `Profit margin ${margin.toFixed(0)}% on ৳ ${money(rev)} sales.`; }
+
+      const longKots = activeKots.filter(k => (Date.now() - new Date(k.time).getTime()) / 60000 > 20);
+      const offDishes = menuItems.filter(p => !p.variants.some(v => v.on !== false)).length;
+      const alerts = [];
+      if (longKots.length) alerts.push(`🔥 ${longKots.length} kitchen order(s) waiting more than 20 min`);
+      if (dues > 0) alerts.push(`📒 ৳ ${money(dues)} customer due pending`);
+      if (offDishes) alerts.push(`🚫 ${offDishes} dish(es) are turned OFF`);
+      if (exp > rev && exp > 0) alerts.push('💸 Expenses are higher than sales');
+
+      document.getElementById('dash-status').innerHTML = `
+        <div class="rd-card p-5 border-l-4 border-l-${tone}-500 bg-${tone}-50/50">
+          <div class="flex items-start gap-3">
+            <div class="text-3xl">${icon}</div>
+            <div class="flex-1">
+              <div class="text-lg font-extrabold text-slate-900">${title}</div>
+              <div class="text-xs text-slate-600">${sub}</div>
+              ${alerts.length ? `<div class="mt-3 flex flex-wrap gap-2">${alerts.map(a => `<span class="px-2.5 py-1 bg-white border border-slate-200 rounded-full text-[11px] font-semibold text-slate-700">${a}</span>`).join('')}</div>` : ''}
+            </div>
+          </div>
+        </div>`;
+
+      /* ---- KPI cards ---- */
+      const card = (ico, title, val, sub, color) => `
+        <div class="rd-card p-4">
+          <div class="text-xl">${ico}</div>
+          <div class="text-[11px] font-semibold text-slate-400 mt-1">${title}</div>
+          <div class="text-xl font-extrabold mt-0.5 ${color}">${val}</div>
+          <div class="text-[10px] text-slate-500 mt-0.5">${sub}</div>
+        </div>`;
+      document.getElementById('dash-cards').innerHTML =
+        card('💰', 'Sales', `৳ ${money(rev)}`, label, 'text-slate-900') +
+        card('🧾', 'Orders', orders, `Avg ৳ ${money(avg)} per order`, 'text-slate-900') +
+        card('📈', 'Net Profit', `৳ ${money(profit)}`, 'After food cost & expenses', profit < 0 ? 'text-rose-600' : 'text-emerald-600') +
+        card('🛒', 'Expenses', `৳ ${money(exp)}`, 'Bazar, rent, salary...', 'text-rose-600') +
+        card('🔥', 'In Kitchen', activeKots.length, 'Running KOT orders', 'text-amber-600') +
+        card('📒', 'Customer Dues', `৳ ${money(dues)}`, 'All-time pending', 'text-rose-600');
+
+      /* ---- Live tables ---- */
+      const tableCards = tables.map(tb => {
+        const k = activeKots.find(x => x.table === tb);
+        if (!k) return `<button onclick="switchTab('pos'); document.querySelector('input[name=order-type][value=Dine-In]').checked=true; onOrderTypeChange(); document.getElementById('cart-table-select').value='${esc(tb)}';" class="p-3 rounded-xl border border-emerald-200 bg-emerald-50 text-left hover:bg-emerald-100">
+            <div class="font-bold text-sm text-slate-900">${esc(tb)}</div>
+            <div class="text-[11px] font-bold text-emerald-700 mt-1">● Free</div></button>`;
+        const mins = Math.max(1, Math.round((Date.now() - new Date(k.time).getTime()) / 60000));
+        const bill = k.items.reduce((a, i) => a + i.price * i.qty, 0);
+        return `<button onclick="loadKotToCart('${esc(k.id)}')" class="p-3 rounded-xl border ${mins > 20 ? 'border-rose-300 bg-rose-50' : 'border-amber-300 bg-amber-50'} text-left hover:shadow">
+            <div class="font-bold text-sm text-slate-900">${esc(tb)}</div>
+            <div class="text-[11px] font-bold ${mins > 20 ? 'text-rose-700' : 'text-amber-700'} mt-1">● Occupied • ${mins} min</div>
+            <div class="text-xs font-extrabold text-slate-900 mt-0.5">৳ ${money(bill)}</div></button>`;
+      }).join('');
+      const freeCount = tables.filter(tb => !activeKots.some(k => k.table === tb)).length;
+      const otherKots = activeKots.filter(k => !tables.includes(k.table)).length;
+
+      /* ---- Helpers for bars ---- */
+      const group = (keyFn) => { const m = {}; ps.forEach(s => { const k = keyFn(s); m[k] = (m[k] || 0) + s.grandTotal; }); return Object.entries(m).sort((a, b) => b[1] - a[1]); };
+      const barList = (rows, color) => rows.length ? rows.map(([n, v]) => `
+          <div class="mb-2">
+            <div class="flex justify-between text-xs font-semibold"><span>${esc(n)}</span><span>৳ ${money(v)} <span class="text-slate-400">(${rev ? Math.round(v / rev * 100) : 0}%)</span></span></div>
+            <div class="h-2 bg-slate-100 rounded-full mt-1"><div class="h-2 rounded-full ${color}" style="width:${rev ? Math.max(3, v / rev * 100) : 0}%"></div></div>
+          </div>`).join('') : '<div class="text-xs text-slate-400 py-4 text-center">No data yet</div>';
+
+      /* ---- Top dishes ---- */
+      const dm = {};
+      ps.forEach(s => s.items.forEach(i => { const d = dm[i.name] || (dm[i.name] = { qty: 0, amt: 0 }); d.qty += i.qty; d.amt += i.price * i.qty; }));
+      const top = Object.entries(dm).sort((a, b) => b[1].qty - a[1].qty).slice(0, 5);
+      const topHtml = top.length ? top.map(([n, d], i) => `
+          <div class="flex items-center gap-3 py-2 border-b border-slate-100 last:border-0">
+            <span class="w-6 h-6 rounded-full bg-rose-100 text-rose-700 text-xs font-extrabold flex items-center justify-center">${i + 1}</span>
+            <span class="flex-1 text-xs font-bold text-slate-900 truncate">${esc(n)}</span>
+            <span class="text-xs text-slate-500">${d.qty} sold</span>
+            <span class="text-xs font-extrabold w-20 text-right">৳ ${money(d.amt)}</span>
+          </div>`).join('') : '<div class="text-xs text-slate-400 py-4 text-center">No dishes sold yet</div>';
+
+      /* ---- Last 7 days chart ---- */
+      const days = [];
+      for (let i = 6; i >= 0; i--) { const d = new Date(now); d.setDate(d.getDate() - i); const y = dYmd(d); days.push({ y, lbl: d.toLocaleDateString('en-GB', { weekday: 'short' }), v: sales.filter(s => dYmd(new Date(s.date)) === y).reduce((a, s) => a + s.grandTotal, 0) }); }
+      const mx = Math.max(1, ...days.map(d => d.v));
+      const chart = days.map(d => `
+          <div class="flex-1 flex flex-col items-center justify-end h-full">
+            <div class="text-[10px] font-bold text-slate-600 mb-1">${d.v ? money(d.v) : ''}</div>
+            <div class="w-full rounded-t-md ${d.y === t ? 'bg-rose-500' : 'bg-slate-300'}" style="height:${d.v ? Math.max(4, d.v / mx * 100) : 2}%"></div>
+            <div class="text-[10px] font-semibold text-slate-500 mt-1">${d.lbl}</div>
+          </div>`).join('');
+
+      document.getElementById('dash-body').innerHTML = `
+        <div class="rd-card p-4">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <h3 class="font-bold text-sm text-slate-900">🍽️ Live Table Status</h3>
+            <div class="text-[11px] font-semibold text-slate-500">${freeCount} free • ${tables.length - freeCount} occupied${otherKots ? ` • ${otherKots} takeaway/delivery in kitchen` : ''}</div>
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2.5">${tableCards || '<div class="text-xs text-slate-400">No tables set up yet.</div>'}</div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div class="rd-card p-4">
+            <h3 class="font-bold text-sm text-slate-900 mb-3">📊 Last 7 Days Sales</h3>
+            <div class="flex items-end gap-2 h-40">${chart}</div>
+          </div>
+          <div class="rd-card p-4">
+            <h3 class="font-bold text-sm text-slate-900 mb-1">🏆 Top 5 Selling Dishes <span class="text-[11px] font-medium text-slate-400">(${label})</span></h3>
+            ${topHtml}
+          </div>
+          <div class="rd-card p-4">
+            <h3 class="font-bold text-sm text-slate-900 mb-3">💳 Payment Methods <span class="text-[11px] font-medium text-slate-400">(${label})</span></h3>
+            ${barList(group(s => s.paymentMethod), 'bg-emerald-500')}
+          </div>
+          <div class="rd-card p-4">
+            <h3 class="font-bold text-sm text-slate-900 mb-3">🛍️ Dine-In / Takeaway / Delivery <span class="text-[11px] font-medium text-slate-400">(${label})</span></h3>
+            ${barList(group(s => s.orderType), 'bg-rose-500')}
+          </div>
+        </div>`;
+    }
+
+    /* -------------------- CUSTOMERS, DUE, EXPENSES & SUPPLIERS -------------------- */
+    function renderCustomersView() {
+      const map = {};
+      sales.forEach(s => {
+        const k = s.customerPhone !== 'N/A' ? s.customerPhone : s.customerName;
+        if (!map[k]) map[k] = { name: s.customerName, phone: s.customerPhone, orders: 0, spent: 0, due: 0 };
+        map[k].orders++;
+        map[k].spent += s.grandTotal;
+        map[k].due += Math.max(0, s.grandTotal - s.paidAmount);
+      });
+      const rows = Object.values(map);
+      document.getElementById('customers-tbody').innerHTML = rows.length ? rows.map((c, i) => `
+        <tr>
+          <td class="py-2.5 px-4">${i + 1}</td>
+          <td class="py-2.5 px-3 font-bold">${esc(c.name)}</td>
+          <td class="py-2.5 px-3">${esc(c.phone)}</td>
+          <td class="py-2.5 px-3 text-center">${c.orders}</td>
+          <td class="py-2.5 px-3 text-right font-bold">৳ ${money(c.spent)}</td>
+          <td class="py-2.5 px-3 text-right font-bold text-rose-600">৳ ${money(c.due)}</td>
+        </tr>`).join('') : '<tr><td colspan="6" class="py-8 text-center text-slate-400">No customer records yet.</td></tr>';
+    }
+
+    function openDueModal() {
+      const dues = sales.filter(s => s.grandTotal > s.paidAmount);
+      const box = document.getElementById('due-list');
+      box.innerHTML = dues.length ? dues.map(s => {
+        const rem = s.grandTotal - s.paidAmount;
+        return `
+          <div class="p-3 border rounded-xl flex justify-between items-center">
+            <div><b>${esc(s.customerName)}</b> (${esc(s.id)})<div class="text-slate-500">Due: <b class="text-rose-600">৳ ${money(rem)}</b></div></div>
+            <button onclick="collectDue('${esc(s.id)}')" class="px-3 py-1.5 bg-emerald-600 text-white rounded-lg font-bold">Mark Paid</button>
+          </div>`;
+      }).join('') : '<div class="py-8 text-center text-slate-400">No pending customer dues!</div>';
+      openModal('due-modal');
+    }
+
+    function collectDue(id) {
+      const s = sales.find(x => x.id === id);
+      if (s) {
+        s.paidAmount = s.grandTotal;
+        saveLS(K_SALES, sales);
+        openDueModal();
+        showToast('Due collected!', 'success');
+      }
+    }
+
+    function openReturnModal() {
+      const box = document.getElementById('return-list');
+      box.innerHTML = sales.slice(0, 15).map(s => `
+        <div class="p-3 border rounded-xl flex justify-between items-center">
+          <div><b>${esc(s.id)}</b> • ${esc(s.customerName)}<div class="text-slate-500">Total: ৳ ${money(s.grandTotal)}</div></div>
+          <button onclick="deleteSale('${esc(s.id)}'); closeModal('return-modal'); showToast('Order voided & refunded','info');" class="px-3 py-1.5 bg-rose-600 text-white rounded-lg font-bold">Void / Refund</button>
+        </div>`).join('') || '<div class="py-8 text-center text-slate-400">No orders to refund.</div>';
+      openModal('return-modal');
+    }
+
+    function renderFinanceView() {
+      const totalRev = sales.reduce((a, s) => a + s.grandTotal, 0);
+      const totalExp = expenses.reduce((a, e) => a + e.amount, 0);
+      const foodCost = sales.reduce((a, s) => a + s.items.reduce((x, i) => x + (i.buyPrice || 0) * i.qty, 0), 0);
+      document.getElementById('finance-cards').innerHTML = `
+        <div class="rd-card p-5"><div class="text-xs text-slate-400 font-semibold">Total Revenue</div><div class="text-2xl font-extrabold mt-1">৳ ${money(totalRev)}</div></div>
+        <div class="rd-card p-5"><div class="text-xs text-slate-400 font-semibold">Total Food Cost</div><div class="text-2xl font-extrabold mt-1 text-amber-600">৳ ${money(foodCost)}</div></div>
+        <div class="rd-card p-5"><div class="text-xs text-slate-400 font-semibold">Bazar & Operating Expenses</div><div class="text-2xl font-extrabold mt-1 text-rose-600">৳ ${money(totalExp)}</div></div>
+        <div class="rd-card p-5"><div class="text-xs text-slate-400 font-semibold">Net Profit</div><div class="text-2xl font-extrabold mt-1 text-emerald-600">৳ ${money(totalRev - foodCost - totalExp)}</div></div>`;
+    }
+
+    function addExpense() {
+      const cat = document.getElementById('exp-cat').value;
+      const amt = Number(document.getElementById('exp-amt').value) || 0;
+      const note = document.getElementById('exp-note').value.trim();
+      if (amt <= 0) { showToast('Enter a valid amount', 'warning'); return; }
+      expenses.unshift({ id: 'E' + Date.now(), date: new Date().toISOString(), cat, amount: amt, note });
+      saveLS(K_EXP, expenses);
+      document.getElementById('exp-amt').value = '';
+      document.getElementById('exp-note').value = '';
+      renderExpensesView();
+      showToast('Expense added', 'success');
+    }
+
+    function renderExpensesView() {
+      document.getElementById('expenses-tbody').innerHTML = expenses.map((e, i) => `
+        <tr>
+          <td class="py-2.5 px-4 text-xs text-slate-500">${new Date(e.date).toLocaleDateString('en-GB')}</td>
+          <td class="py-2.5 px-3 font-bold">${esc(e.cat)}</td>
+          <td class="py-2.5 px-3">${esc(e.note || '-')}</td>
+          <td class="py-2.5 px-3 text-right font-bold text-rose-600">৳ ${money(e.amount)}</td>
+          <td class="py-2.5 px-4 text-right"><button onclick="expenses.splice(${i},1); saveLS(K_EXP,expenses); renderExpensesView();" class="text-rose-500 font-bold">✕</button></td>
+        </tr>`).join('') || '<tr><td colspan="5" class="py-8 text-center text-slate-400">No expenses recorded yet.</td></tr>';
+    }
+
+    function addSupplier() {
+      const name = prompt('Supplier Name (e.g. Bismillah Meat & Poultry):');
+      if (!name) return;
+      const phone = prompt('Phone Number:') || '';
+      suppliers.push({ id: 'S' + Date.now(), name: name.trim(), phone: phone.trim() });
+      saveLS(K_SUP, suppliers);
+      renderSuppliersView();
+    }
+
+    function renderSuppliersView() {
+      document.getElementById('suppliers-list').innerHTML = suppliers.map((s, i) => `
+        <div class="p-3 border rounded-xl flex justify-between items-center">
+          <div><b>${esc(s.name)}</b> <span class="text-xs text-slate-500">(${esc(s.phone || 'No phone')})</span></div>
+          <button onclick="suppliers.splice(${i},1); saveLS(K_SUP,suppliers); renderSuppliersView();" class="text-rose-600 text-xs font-bold">Delete</button>
+        </div>`).join('') || '<div class="py-8 text-center text-slate-400">No suppliers added yet.</div>';
+    }
+
+    /* -------------------- SETTINGS, BACKUP & BULK EXCEL -------------------- */
+    function openSettingsModal() {
+      tmpLogo = null;
+      document.getElementById('set-logo-preview').src = getLogo();
+      document.getElementById('set-shop-name').value = shopConfig.name;
+      document.getElementById('set-shop-tagline').value = shopConfig.tagline;
+      document.getElementById('set-shop-address').value = shopConfig.address;
+      document.getElementById('set-shop-phone').value = shopConfig.phone;
+      document.getElementById('set-default-printer').value = shopConfig.defaultPrinter;
+      document.getElementById('set-shop-policy').value = shopConfig.policy;
+      document.getElementById('set-admin-email').value = shopConfig.adminEmail;
+      document.getElementById('set-admin-pass').value = shopConfig.adminPass;
+      tmpQrImage = null;
+      document.getElementById('set-qr-mode').value = shopConfig.payQrMode || 'off';
+      document.getElementById('set-qr-label').value = shopConfig.payQrLabel || '';
+      document.getElementById('set-qr-payload').value = shopConfig.payQrPayload || '';
+      document.getElementById('set-qr-preview').src = shopConfig.payQrImage || 'data:,';
+      openModal('settings-modal');
+    }
+
+    function saveShopSettings() {
+      if (tmpLogo !== null) shopConfig.logo = tmpLogo;
+      shopConfig.name = document.getElementById('set-shop-name').value.trim() || DEFAULT_CFG.name;
+      shopConfig.tagline = document.getElementById('set-shop-tagline').value.trim();
+      shopConfig.address = document.getElementById('set-shop-address').value.trim();
+      shopConfig.phone = document.getElementById('set-shop-phone').value.trim();
+      shopConfig.defaultPrinter = document.getElementById('set-default-printer').value;
+      shopConfig.policy = document.getElementById('set-shop-policy').value.trim();
+      const em = document.getElementById('set-admin-email').value.trim();
+      const pw = document.getElementById('set-admin-pass').value;
+      if (em) shopConfig.adminEmail = em;
+      if (pw) shopConfig.adminPass = pw;
+      shopConfig.payQrMode = document.getElementById('set-qr-mode').value;
+      shopConfig.payQrLabel = document.getElementById('set-qr-label').value.trim() || 'Scan to Pay (Bangla QR)';
+      shopConfig.payQrPayload = document.getElementById('set-qr-payload').value.trim();
+      if (tmpQrImage !== null) shopConfig.payQrImage = tmpQrImage;
+      saveLS(K_CFG, shopConfig);
+      applyConfigUI();
+      applyLogoUI();
+      closeModal('settings-modal');
+      showToast('Settings saved!', 'success');
+    }
+
+    function exportBackup() {
+      const data = {};
+      ALL_KEYS.forEach(k => { data[k] = loadLS(k, null); });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: 'application/json' }));
+      a.download = `pos_backup_${todayYMD()}.json`;
+      a.click();
+      showToast('Backup downloaded', 'success');
+    }
+
+    function importBackup(e) {
+      const f = e.target.files[0];
+      if (!f) return;
+      const rd = new FileReader();
+      rd.onload = () => {
+        try {
+          const data = JSON.parse(rd.result);
+          if (!confirm('Restore this backup? Current data will be replaced.')) return;
+          ALL_KEYS.forEach(k => { if (data[k] !== undefined && data[k] !== null) saveLS(k, data[k]); });
+          (window.fbFlush ? window.fbFlush() : Promise.resolve()).then(() => location.reload());
+        } catch { showToast('Invalid backup file', 'error'); }
+      };
+      rd.readAsText(f);
+      e.target.value = '';
+    }
+
+    function openBulkUpload() { openModal('bulk-modal'); }
+    function downloadMenuTemplate() {
+      const rows = [
+        { 'Dish Name': 'Chicken Tehari', 'Category': 'Biriyani', 'Portion': 'Half', 'Price': 160, 'Cost': 100, 'Available': 'yes' },
+        { 'Dish Name': 'Chicken Tehari', 'Category': 'Biriyani', 'Portion': 'Full', 'Price': 240, 'Cost': 150, 'Available': 'yes' }
+      ];
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Menu');
+      XLSX.writeFile(wb, 'restaurant_menu_template.xlsx');
+    }
+
+    async function handleBulkFile(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type: 'array' });
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+      const map = {};
+      rows.forEach(r => {
+        const name = String(r['Dish Name'] || '').trim();
+        if (!name) return;
+        if (!map[name]) map[name] = { id: 'm_' + Date.now() + Math.random(), name, category: r['Category'] || 'Others', buyPrice: Number(r['Cost']) || 0, variants: [] };
+        map[name].variants.push({ size: String(r['Portion'] || 'Regular'), price: Number(r['Price']) || 0, on: !['no','off','0','false'].includes(String(r['Available'] ?? 'yes').trim().toLowerCase()), sku: String(200000 + Math.floor(Math.random()*90000)) });
+      });
+      Object.values(map).forEach(item => {
+        if (!shopConfig.categories.includes(item.category)) shopConfig.categories.push(item.category);
+        menuItems.unshift(item);
+      });
+      saveLS(K_CFG, shopConfig);
+      saveLS(K_MENU, menuItems);
+      closeModal('bulk-modal');
+      renderPosCategories();
+      renderPosCatalog();
+      renderInventory();
+      showToast(`Imported ${Object.keys(map).length} dishes!`, 'success');
+      e.target.value = '';
+    }
+/* -------------------- REPORT CENTER -------------------- */
+let rcPeriod = 'today';
+function setRcPeriod(p) { rcPeriod = p; renderReportCenter(); }
+
+function rcRange() {
+  const ymd = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const now = new Date(), t = ymd(now);
+  let from = t, to = t;
+  if (rcPeriod === 'week') { const d = new Date(now); d.setDate(d.getDate() - 6); from = ymd(d); }
+  else if (rcPeriod === 'month') from = t.slice(0, 8) + '01';
+  else if (rcPeriod === 'year') from = t.slice(0, 4) + '-01-01';
+  else if (rcPeriod === 'all') from = '2000-01-01';
+  else if (rcPeriod === 'custom') {
+    from = document.getElementById('rc-from').value || t;
+    to = document.getElementById('rc-to').value || t;
+  }
+  return { from, to, ymd };
+}
+
+function rcCompute() {
+  const { from, to, ymd } = rcRange();
+  const inR = iso => { const y = ymd(new Date(iso)); return y >= from && y <= to; };
+  const ps = sales.filter(s => inR(s.date));
+  const pe = expenses.filter(e => inR(e.date));
+  const costOf = s => s.items.reduce((a, i) => a + (i.buyPrice || 0) * i.qty, 0);
+  const sum = (a, f) => a.reduce((x, y) => x + f(y), 0);
+  const rev = sum(ps, s => s.grandTotal), cost = sum(ps, costOf), exp = sum(pe, e => e.amount);
+  const disc = sum(ps, s => s.discount), due = sum(ps, s => Math.max(0, s.grandTotal - s.paidAmount));
+  const gross = rev - cost, net = gross - exp;
+
+  const days = {};
+  const dayOf = y => days[y] || (days[y] = { date: y, orders: 0, sales: 0, cost: 0, exp: 0 });
+  ps.forEach(s => { const d = dayOf(ymd(new Date(s.date))); d.orders++; d.sales += s.grandTotal; d.cost += costOf(s); });
+  pe.forEach(e => { dayOf(ymd(new Date(e.date))).exp += e.amount; });
+  const dayRows = Object.values(days).sort((a, b) => a.date < b.date ? 1 : -1).map(d => ({ ...d, profit: d.sales - d.cost - d.exp }));
+
+  const dishes = {};
+  ps.forEach(s => s.items.forEach(i => {
+    const k = `${i.name} (${i.size})`;
+    const d = dishes[k] || (dishes[k] = { name: k, qty: 0, sales: 0, cost: 0 });
+    d.qty += i.qty; d.sales += i.price * i.qty; d.cost += (i.buyPrice || 0) * i.qty;
+  }));
+  const dishRows = Object.values(dishes).map(d => ({ ...d, profit: d.sales - d.cost })).sort((a, b) => b.qty - a.qty);
+
+  const grp = (arr, f, v) => { const m = {}; arr.forEach(x => { const k = f(x); m[k] = (m[k] || 0) + v(x); }); return Object.entries(m).sort((a, b) => b[1] - a[1]); };
+  return {
+    from, to, ps, pe, rev, cost, exp, disc, due, gross, net, dayRows, dishRows,
+    pay: grp(ps, s => s.paymentMethod, s => s.grandTotal),
+    type: grp(ps, s => s.orderType, s => s.grandTotal),
+    expCat: grp(pe, e => e.cat, e => e.amount)
+  };
+}
+
+function rcHeaderHtml(d, logo) {
+  return `<div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid #e11d2e">
+    <img src="${logo || getLogo()}" width="60" height="60" style="width:60px;height:60px;object-fit:contain;flex-shrink:0" alt="logo">
+    <div>
+      <div style="font-size:22px;font-weight:800;color:#101828">${esc(shopConfig.name)}</div>
+      <div style="font-size:11px;color:#667085">${esc(shopConfig.address)} • ${esc(shopConfig.phone)}</div>
+      <div style="font-size:12px;font-weight:700;color:#101828">Business Report: ${esc(d.from)} to ${esc(d.to)}</div>
+    </div></div>`;
+}
+
+function rcBuildHtml(d) {
+  const isProfit = d.net >= 0;
+  const box = (t, v, c, sub) => `<div class="rd-card p-4"><div class="text-[11px] font-semibold text-slate-400">${t}</div><div class="text-xl font-extrabold mt-1 ${c}">৳ ${money(v)}</div><div class="text-[10px] text-slate-500 mt-0.5">${sub}</div></div>`;
+  const th = (arr) => `<thead class="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200"><tr>${arr.map((h, i) => `<th class="py-2.5 px-3 ${i ? 'text-right' : ''}">${h}</th>`).join('')}</tr></thead>`;
+  const pl = v => `<span class="font-extrabold ${v >= 0 ? 'text-emerald-600' : 'text-rose-600'}">${v >= 0 ? '+' : '-'} ৳ ${money(Math.abs(v))} ${v >= 0 ? '' : '(LOSS)'}</span>`;
+  const bars = (rows, color) => rows.length ? rows.map(([n, v]) => `<div class="mb-2"><div class="flex justify-between text-xs font-semibold"><span>${esc(n)}</span><span>৳ ${money(v)}</span></div><div class="h-2 bg-slate-100 rounded-full mt-1"><div class="h-2 rounded-full ${color}" style="width:${Math.max(3, v / (rows[0][1] || 1) * 100)}%"></div></div></div>`).join('') : '<div class="text-xs text-slate-400 py-3 text-center">No data</div>';
+
+  return `
+    <div class="rd-card p-6 border-l-4 ${isProfit ? 'border-l-emerald-500 bg-emerald-50/50' : 'border-l-rose-500 bg-rose-50/50'}">
+      <div class="text-xs font-semibold text-slate-500">${isProfit ? '✅ PROFIT ' : '⚠️ LOSS '} — ${esc(d.from)} to ${esc(d.to)}</div>
+      <div class="text-3xl font-extrabold mt-1 ${isProfit ? 'text-emerald-600' : 'text-rose-600'}">৳ ${money(Math.abs(d.net))} ${isProfit ? 'PROFIT' : 'LOSS'}</div>
+      <div class="text-xs text-slate-600 mt-1">Sell ৳ ${money(d.rev)} − Khabar khoroch ৳ ${money(d.cost)} − Bazar/Opo. khoroch ৳ ${money(d.exp)}</div>
+    </div>
+
+    <div class="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+      ${box('💰 Total Sell', d.rev, 'text-slate-900', d.ps.length + ' orders')}
+      ${box('🍳 Food Cost', d.cost, 'text-amber-600', 'Dish banate khoroch')}
+      ${box('📊 Gross Profit', d.gross, d.gross >= 0 ? 'text-emerald-600' : 'text-rose-600', 'Sell − Food cost')}
+      ${box('🛒 Expenses', d.exp, 'text-rose-600', 'Bazar, rent, salary')}
+      ${box(isProfit ? '📈 Net Profit' : '📉 Net Loss', Math.abs(d.net), isProfit ? 'text-emerald-600' : 'text-rose-600', 'Sob khoroch-er por')}
+      ${box('📒 Due (বাকি)', d.due, 'text-rose-600', 'Discount ৳ ' + money(d.disc))}
+    </div>
+
+    <div class="rd-card overflow-hidden">
+      <div class="p-3 bg-slate-900 text-white font-bold text-sm">📅 Day-wise Sell, Profit & Loss</div>
+      <div class="overflow-x-auto"><table class="w-full text-left text-xs sm:text-sm">
+        ${th(['Date', 'Orders', 'Sell', 'Food Cost', 'Expense', 'Profit / Loss'])}
+        <tbody class="divide-y divide-slate-100">
+          ${d.dayRows.map(r => `<tr><td class="py-2 px-3 font-bold">${r.date}</td><td class="py-2 px-3 text-right">${r.orders}</td><td class="py-2 px-3 text-right">৳ ${money(r.sales)}</td><td class="py-2 px-3 text-right">৳ ${money(r.cost)}</td><td class="py-2 px-3 text-right">৳ ${money(r.exp)}</td><td class="py-2 px-3 text-right">${pl(r.profit)}</td></tr>`).join('') || '<tr><td colspan="6" class="py-6 text-center text-slate-400">No data in this period</td></tr>'}
+          <tr class="bg-slate-50 font-extrabold"><td class="py-2 px-3">TOTAL</td><td class="py-2 px-3 text-right">${d.ps.length}</td><td class="py-2 px-3 text-right">৳ ${money(d.rev)}</td><td class="py-2 px-3 text-right">৳ ${money(d.cost)}</td><td class="py-2 px-3 text-right">৳ ${money(d.exp)}</td><td class="py-2 px-3 text-right">${pl(d.net)}</td></tr>
+        </tbody></table></div>
+    </div>
+
+    <div class="rd-card overflow-hidden">
+      <div class="p-3 bg-slate-900 text-white font-bold text-sm">🍽️ Dish-wise Report</div>
+      <div class="overflow-x-auto"><table class="w-full text-left text-xs sm:text-sm">
+        ${th(['Dish (Portion)', 'Qty Sold', 'Sell', 'Food Cost', 'Profit / Loss'])}
+        <tbody class="divide-y divide-slate-100">
+          ${d.dishRows.map(r => `<tr><td class="py-2 px-3 font-bold">${esc(r.name)}</td><td class="py-2 px-3 text-right">${r.qty}</td><td class="py-2 px-3 text-right">৳ ${money(r.sales)}</td><td class="py-2 px-3 text-right">৳ ${money(r.cost)}</td><td class="py-2 px-3 text-right">${pl(r.profit)}</td></tr>`).join('') || '<tr><td colspan="5" class="py-6 text-center text-slate-400">No dishes sold</td></tr>'}
+        </tbody></table></div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <div class="rd-card p-4"><h3 class="font-bold text-sm mb-3">💳 Payment Method</h3>${bars(d.pay, 'bg-emerald-500')}</div>
+      <div class="rd-card p-4"><h3 class="font-bold text-sm mb-3">🛍️ Dine-In / Takeaway / Delivery</h3>${bars(d.type, 'bg-rose-500')}</div>
+      <div class="rd-card p-4"><h3 class="font-bold text-sm mb-3">🛒 Expense Category</h3>${bars(d.expCat, 'bg-amber-500')}</div>
+    </div>`;
+}
+
+function renderReportCenter() {
+  const labels = { today: 'Today', week: '7 Days', month: 'This Month', year: 'This Year', all: 'All Time', custom: 'Custom' };
+  document.getElementById('rc-period').innerHTML = Object.keys(labels).map(p =>
+    `<button onclick="setRcPeriod('${p}')" class="px-3 py-1.5 rounded-md font-bold ${rcPeriod === p ? 'bg-white shadow text-rose-600' : 'text-slate-500'}">${labels[p]}</button>`).join('');
+  document.getElementById('rc-custom').classList.toggle('hidden', rcPeriod !== 'custom');
+  document.getElementById('rc-body').innerHTML = rcBuildHtml(rcCompute());
+}
+
+async function rcDownloadPDF() {
+  const d = rcCompute();
+  const logo = await getLogoForPdf();
+  const el = document.getElementById('pdf-render-canvas');
+  el.innerHTML = rcHeaderHtml(d, logo) + rcBuildHtml(d);
+  await new Promise(r => setTimeout(r, 150));
+  html2pdf().set({ margin: 8, filename: `Report_${d.from}_to_${d.to}.pdf`, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4' } }).from(el).save();
+  showToast('PDF report toiri hocche...', 'info');
+}
+
+function rcExportExcel() {
+  const d = rcCompute();
+  const wb = XLSX.utils.book_new();
+  const add = (name, rows) => XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows.length ? rows : [{ Info: 'No data' }]), name);
+  const res = v => v >= 0 ? 'PROFIT' : 'LOSS';
+  add('Summary', [
+    { Item: 'Period', 'Amount (Tk)': `${d.from} to ${d.to}` },
+    { Item: 'Total Orders', 'Amount (Tk)': d.ps.length },
+    { Item: 'Total Sell', 'Amount (Tk)': Math.round(d.rev) },
+    { Item: 'Discount Given', 'Amount (Tk)': Math.round(d.disc) },
+    { Item: 'Food Cost', 'Amount (Tk)': Math.round(d.cost) },
+    { Item: 'Gross Profit', 'Amount (Tk)': Math.round(d.gross) },
+    { Item: 'Expenses', 'Amount (Tk)': Math.round(d.exp) },
+    { Item: 'NET RESULT', 'Amount (Tk)': Math.round(d.net) },
+    { Item: 'PROFIT or LOSS', 'Amount (Tk)': res(d.net) },
+    { Item: 'Customer Due', 'Amount (Tk)': Math.round(d.due) }
+  ]);
+  add('Day-wise', d.dayRows.map(r => ({ Date: r.date, Orders: r.orders, Sell: Math.round(r.sales), 'Food Cost': Math.round(r.cost), Expense: Math.round(r.exp), 'Profit/Loss': Math.round(r.profit), Result: res(r.profit) })));
+  add('Dish-wise', d.dishRows.map(r => ({ Dish: r.name, 'Qty Sold': r.qty, Sell: Math.round(r.sales), 'Food Cost': Math.round(r.cost), 'Profit/Loss': Math.round(r.profit), Result: res(r.profit) })));
+  add('Orders', d.ps.map(s => ({ Memo: s.id, Date: new Date(s.date).toLocaleString('en-GB'), Type: s.orderType, Table: s.table, Customer: s.customerName, Phone: s.customerPhone, Payment: s.paymentMethod, Items: s.items.map(i => `${i.name} (${i.size}) x${i.qty}`).join(', '), Subtotal: Math.round(s.subtotal), Discount: Math.round(s.discount), Total: Math.round(s.grandTotal), Paid: Math.round(s.paidAmount), Due: Math.round(Math.max(0, s.grandTotal - s.paidAmount)) })));
+  add('Expenses', d.pe.map(e => ({ Date: new Date(e.date).toLocaleDateString('en-GB'), Category: e.cat, Note: e.note || '', Amount: Math.round(e.amount) })));
+  add('Payment & Type', [...d.pay.map(([n, v]) => ({ Group: 'Payment', Name: n, Amount: Math.round(v) })), ...d.type.map(([n, v]) => ({ Group: 'Order Type', Name: n, Amount: Math.round(v) }))]);
+  XLSX.writeFile(wb, `Report_${d.from}_to_${d.to}.xlsx`);
+  showToast('Excel report downloaded', 'success');
+}
+
+function rcExportCSV() {
+  const d = rcCompute();
+  let csv = 'Date,Orders,Sell,Food Cost,Expense,Profit/Loss,Result\n';
+  d.dayRows.forEach(r => { csv += `${r.date},${r.orders},${Math.round(r.sales)},${Math.round(r.cost)},${Math.round(r.exp)},${Math.round(r.profit)},${r.profit >= 0 ? 'PROFIT' : 'LOSS'}\n`; });
+  csv += `TOTAL,${d.ps.length},${Math.round(d.rev)},${Math.round(d.cost)},${Math.round(d.exp)},${Math.round(d.net)},${d.net >= 0 ? 'PROFIT' : 'LOSS'}\n`;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['\ufeff' + csv], { type: 'text/csv' }));
+  a.download = `Report_${d.from}_to_${d.to}.csv`;
+  a.click();
+}
+
+function rcPrint() {
+  const d = rcCompute();
+  const mount = document.getElementById('isolated-print-mount');
+  mount.innerHTML = rcHeaderHtml(d) + rcBuildHtml(d);
+  document.getElementById('dynamic-print-style').innerHTML = '@page{size:A4 portrait;margin:8mm}';
+  mount.classList.remove('hidden');
+  setTimeout(() => { window.print(); setTimeout(() => { mount.classList.add('hidden'); mount.innerHTML = ''; }, 300); }, 150);
+}
+    /* -------------------- HELPERS & SHORTCUTS -------------------- */
+    function openModal(id) { const m = document.getElementById(id); m.classList.remove('hidden'); m.classList.add('flex'); lucide.createIcons(); }
+    function closeModal(id) { const m = document.getElementById(id); m.classList.add('hidden'); m.classList.remove('flex'); }
+
+    function showToast(msg, type = 'info') {
+      const box = document.getElementById('toast-container');
+      const div = document.createElement('div');
+      const bg = type === 'success' ? 'bg-emerald-800' : type === 'error' ? 'bg-rose-800' : 'bg-slate-800';
+      div.className = `${bg} text-white px-4 py-2.5 rounded-xl text-xs font-semibold shadow-lg transition-all`;
+      div.innerText = msg;
+      box.appendChild(div);
+      setTimeout(() => div.remove(), 2600);
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'F2') { e.preventDefault(); switchTab('pos'); document.getElementById('pos-search-input').focus(); }
+      if (e.key === 'F9') { e.preventDefault(); processCheckout(); }
+    });
+    /* ================= TABLE QR MENU ================= */
+const TQ_TABLE = new URLSearchParams(location.search).get('table');
+
+function tqBase() { return (shopConfig.menuBaseUrl || '').trim() || location.href.split('#')[0].split('?')[0]; }
+function tqLink(t) { return tqBase() + '?table=' + encodeURIComponent(t); }
+function tqSaveBase(v) { shopConfig.menuBaseUrl = v.trim(); saveLS(K_CFG, shopConfig); renderTablesView(); }
+
+function tqDownloadMenu() {
+  const data = {
+    name: shopConfig.name, tagline: shopConfig.tagline, address: shopConfig.address, phone: shopConfig.phone,
+    logo: shopConfig.logo || '', categories: shopConfig.categories,
+    // buyPrice (food cost) ekhane deya hoyni, customer dekhte parbe na
+    menu: menuItems.map(p => ({ name: p.name, category: p.category, variants: p.variants.map(v => ({ size: v.size, price: v.price, on: v.on !== false })) }))
+  };
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: 'application/json' }));
+  a.download = 'menu.json';
+  a.click();
+  showToast('menu.json downloaded. index.html er pashe upload korun', 'success');
+}
+
+function tqCardHtml(t) {
+  return `<div style="border:2px solid #000;border-radius:12px;padding:14px;text-align:center;break-inside:avoid;font-family:Arial,sans-serif">
+    <img src="${getLogo()}" style="height:46px;margin:0 auto 4px;display:block" alt="">
+    <div style="font-size:16px;font-weight:800">${esc(shopConfig.name)}</div>
+    <div style="font-size:12px;margin:2px 0 6px">মেনুর জন্য স্ক্যান করুন <br>Scan For Menu</div>
+    <img src="${makeQrDataUrl(tqLink(t))}" style="width:210px;height:210px;margin:0 auto;display:block;image-rendering:pixelated" alt="QR">
+    <div style="font-size:20px;font-weight:800;margin-top:6px">${esc(t)}</div>
+  </div>`;
+}
+function tqPrint(i) {
+  const m = document.getElementById('isolated-print-mount');
+  m.innerHTML = `<div style="display:grid;grid-template-columns:1fr;max-width:90mm;margin:0 auto">${tqCardHtml(tables[i])}</div>`;
+  runPrint(m, 'a4');
+}
+function tqPrintAll() {
+  const m = document.getElementById('isolated-print-mount');
+  m.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10mm;padding:8mm">${tables.map(tqCardHtml).join('')}</div>`;
+  runPrint(m, 'a4');
+}
+function tqShow(i) {
+  const t = tables[i];
+  let m = document.getElementById('tqr-modal');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'tqr-modal';
+    m.className = 'fixed inset-0 z-50 bg-slate-900/70 hidden items-center justify-center p-4 no-print';
+    document.body.appendChild(m);
+  }
+  m.innerHTML = `<div class="bg-white rounded-2xl max-w-xs w-full p-5 text-center shadow-2xl">
+    <h3 class="font-bold text-lg">${esc(t)}</h3>
+    <img src="${makeQrDataUrl(tqLink(t))}" class="w-56 h-56 mx-auto my-3" alt="QR">
+    <div class="text-[10px] break-all text-slate-400">${esc(tqLink(t))}</div>
+    <div class="flex gap-2 mt-4">
+      <button onclick="closeModal('tqr-modal')" class="flex-1 py-2 rd-btn-outline text-xs">Close</button>
+      <button onclick="tqPrint(${i})" class="flex-1 py-2 rd-btn-primary text-xs">Print</button>
+    </div></div>`;
+  openModal('tqr-modal');
+}
+
+/* Table Setup page: purono function-ke override kore QR option jog kora hoyeche */
+function renderTablesView() {
+  const grid = document.getElementById('tables-grid');
+  let p = document.getElementById('tqr-panel');
+  if (!p) {
+    p = document.createElement('div');
+    p.id = 'tqr-panel';
+    p.className = 'rd-card p-4 space-y-2 text-xs';
+    grid.parentNode.insertBefore(p, grid);
+  }
+  p.innerHTML = `
+    <div class="font-bold text-sm text-slate-900">📱 Table QR Menu</div>
+    <label class="block font-semibold text-slate-600">Apnar website link (jekhane index.html upload korben)</label>
+    <input type="text" value="${esc(shopConfig.menuBaseUrl || '')}" placeholder="https://yourrestaurant.netlify.app/index.html" onchange="tqSaveBase(this.value)" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+    <div class="flex flex-wrap gap-2">
+      <button onclick="tqDownloadMenu()" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold">⬇ menu.json</button>
+      <button onclick="tqPrintAll()" class="px-3 py-2 rd-btn-primary">🖨 Print All Table QR</button>
+    </div>
+    <p class="text-[11px] text-slate-500">Menu change korle menu.json abar download kore upload korun.</p>`;
+
+  grid.innerHTML = tables.map((t, idx) => {
+    const running = activeKots.find(k => k.table === t);
+    return `
+      <div class="rd-card p-4 flex flex-col justify-between ${running ? 'border-amber-400 bg-amber-50/40' : ''}">
+        <div class="flex justify-between items-start">
+          <span class="font-bold text-slate-900">${esc(t)}</span>
+          <button onclick="tables.splice(${idx},1); saveLS(K_TABLES,tables); renderTablesView(); populateTablesDropdown();" class="text-slate-400 hover:text-rose-600 text-xs">✕</button>
+        </div>
+        <div class="mt-3 text-xs font-bold ${running ? 'text-amber-700' : 'text-emerald-600'}">${running ? `Occupied (${running.items.length} items)` : 'Available'}</div>
+        <button onclick="tqShow(${idx})" class="mt-2 w-full py-1.5 rd-btn-outline text-xs">📱 QR Code</button>
+      </div>`;
+  }).join('');
+}
+
+/* ---------- Customer-er phone-e jei page dekhabe (?table=... thakle) ---------- */
+async function tqCustomerMode(table) {
+  const st = document.createElement('style');
+  st.textContent = 'body.cust-mode>*:not(#customer-menu){display:none!important}body.cust-mode{display:block!important;overflow:auto!important}';
+  document.head.appendChild(st);
+  document.body.classList.add('cust-mode');
+  const root = document.createElement('div');
+  root.id = 'customer-menu';
+  root.className = 'min-h-screen bg-slate-50';
+  root.innerHTML = '<div class="p-10 text-center text-slate-400 text-sm">Menu load hocche...</div>';
+  document.body.appendChild(root);
+
+  let d = null;
+  try { const r = await fetch('menu.json?t=' + Date.now(), { cache: 'no-store' }); if (r.ok) d = await r.json(); } catch (e) {}
+  if (!d) d = { name: shopConfig.name, tagline: shopConfig.tagline, address: shopConfig.address, phone: shopConfig.phone, logo: shopConfig.logo || '', categories: shopConfig.categories, menu: menuItems };
+
+  document.title = d.name + ' - Menu';
+  let cat = 'all', q = '';
+  root.innerHTML = `
+    <header class="bg-[#12141a] text-white px-4 py-4 sticky top-0 z-10">
+      <div class="flex items-center gap-3 max-w-2xl mx-auto">
+        <img src="${d.logo || DEFAULT_LOGO}" class="w-12 h-12 rounded-xl bg-white object-contain" alt="">
+        <div class="flex-1 min-w-0">
+          <div class="font-extrabold text-base truncate">${esc(d.name)}</div>
+          <div class="text-[11px] text-slate-400 truncate">${esc(d.tagline || '')}</div>
+        </div>
+        <span class="px-3 py-1 rounded-full bg-rose-600 text-xs font-bold whitespace-nowrap">${esc(table)}</span>
+      </div>
+    </header>
+    <div class="max-w-2xl mx-auto p-3 space-y-3">
+      <input id="cm-q" type="text" placeholder="Khabar khujun..." class="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:outline-none">
+      <div id="cm-chips" class="flex gap-1.5 overflow-x-auto pb-1"></div>
+      <div id="cm-list" class="space-y-4 pb-10"></div>
+      <div class="text-center text-[11px] text-slate-400 pb-6">${esc(d.address || '')} ${d.phone ? '• ' + esc(d.phone) : ''}</div>
+    </div>`;
+
+  const draw = () => {
+    const cats = ['all', ...(d.categories || [])];
+    document.getElementById('cm-chips').innerHTML = cats.map(c =>
+      `<button data-c="${esc(c)}" class="cm-chip px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap ${cat === c ? 'bg-[#e11d2e] text-white' : 'bg-white border border-slate-200 text-slate-700'}">${c === 'all' ? 'All' : esc(c)}</button>`).join('');
+    const list = d.menu.filter(p =>
+      (cat === 'all' || p.category === cat) &&
+      (!q || p.name.toLowerCase().includes(q)) &&
+      p.variants.some(v => v.on !== false));
+    const groups = {};
+    list.forEach(p => (groups[p.category] = groups[p.category] || []).push(p));
+    document.getElementById('cm-list').innerHTML = Object.keys(groups).length ? Object.entries(groups).map(([c, items]) => `
+      <div>
+        <div class="text-sm font-extrabold text-slate-800 mb-2">${esc(c)}</div>
+        <div class="space-y-2">${items.map(p => `
+          <div class="bg-white border border-slate-200 rounded-xl p-3">
+            <div class="font-bold text-slate-900 text-sm">${esc(p.name)}</div>
+            <div class="mt-2 space-y-1">${p.variants.filter(v => v.on !== false).map(v => `
+              <div class="flex justify-between text-xs"><span class="text-slate-600">${esc(v.size)}</span><span class="font-extrabold text-rose-600">৳ ${money(v.price)}</span></div>`).join('')}
+            </div>
+          </div>`).join('')}
+        </div>
+      </div>`).join('') : '<div class="py-12 text-center text-slate-400 text-sm">Kono khabar paoa jayni</div>';
+  };
+  document.getElementById('cm-q').addEventListener('input', e => { q = e.target.value.toLowerCase().trim(); draw(); });
+  document.getElementById('cm-chips').addEventListener('click', e => {
+    const b = e.target.closest('.cm-chip');
+    if (b) { cat = b.dataset.c; draw(); }
+  });
+  draw();
+}
+  if (TQ_TABLE !== null) tqCustomerMode(TQ_TABLE);
+  </script>
+  <script>
+(function () {
+  const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDVysBJIQTxXDfs533SkAQvQ0HMsty2OiU",
+  authDomain: "restaurant-website-test.firebaseapp.com",
+  projectId: "restaurant-website-test",
+  storageBucket: "restaurant-website-test.firebasestorage.app",
+  messagingSenderId: "837789642324",
+  appId: "1:837789642324:web:d9a32bfb793f6427f4c7c1",
+  measurementId: "G-F7Q6Q7VB0R"
+  };
+
+  if (typeof TQ_TABLE !== 'undefined' && TQ_TABLE !== null) return; // customer QR menu mode: sync off
+
+  const badge = document.getElementById('cloud-status-badge');
+  const GREEN = 'bg-emerald-950 text-emerald-400 border-emerald-800';
+  const AMBER = 'bg-amber-950 text-amber-400 border-amber-800';
+  const RED = 'bg-rose-950 text-rose-400 border-rose-800';
+  const setBadge = (txt, cls) => {
+    if (!badge) return;
+    badge.className = 'inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ' + cls;
+    badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-current animate-pulse"></span> ' + txt;
+  };
+
+  if (typeof firebase === 'undefined' || !FIREBASE_CONFIG.apiKey || FIREBASE_CONFIG.apiKey.includes('PASTE')) {
+    setBadge('Local only (no Firebase)', AMBER);
+    return;
+  }
+
+  firebase.initializeApp(FIREBASE_CONFIG);
+  const db = firebase.firestore();
+  db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
+
+  // records with an id -> one Firestore document each (no 1MB limit problem)
+  const LISTS = { [K_MENU]: 'menu', [K_SALES]: 'sales', [K_KOTS]: 'kots', [K_EXP]: 'expenses', [K_SUP]: 'suppliers' };
+  const DOCS = { [K_TABLES]: 'tables', [K_CFG]: 'config' };
+
+  const GET = k => ({ [K_MENU]: menuItems, [K_SALES]: sales, [K_KOTS]: activeKots, [K_EXP]: expenses, [K_SUP]: suppliers, [K_TABLES]: tables, [K_CFG]: shopConfig })[k];
+  const SET = (k, v) => {
+    if (k === K_MENU) menuItems = v; else if (k === K_SALES) sales = v; else if (k === K_KOTS) activeKots = v;
+    else if (k === K_EXP) expenses = v; else if (k === K_SUP) suppliers = v; else if (k === K_TABLES) tables = v;
+    else if (k === K_CFG) shopConfig = v;
+  };
+
+  const snap = {}, seqs = {};
+  ALL_KEYS.forEach(k => { snap[k] = {}; seqs[k] = {}; });
+
+  /* ---------- write to cloud ---------- */
+  async function commitList(k, arr) {
+    const col = db.collection(LISTS[k]), last = snap[k], sq = seqs[k], base = Date.now();
+    const ops = [], seen = new Set();
+    (arr || []).forEach((r, i) => {
+      if (!r || !r.id) return;
+      seen.add(r.id);
+      const s = JSON.stringify(r);
+      if (last[r.id] === s) return;
+      if (sq[r.id] === undefined) sq[r.id] = base - i;
+      last[r.id] = s;
+      ops.push(['set', r.id, { json: s, seq: sq[r.id] }]);
+    });
+    Object.keys(last).forEach(id => {
+      if (!seen.has(id)) { delete last[id]; delete sq[id]; ops.push(['del', id]); }
+    });
+    for (let i = 0; i < ops.length; i += 400) {
+      const b = db.batch();
+      ops.slice(i, i + 400).forEach(([t, id, data]) => t === 'set' ? b.set(col.doc(id), data) : b.delete(col.doc(id)));
+      await b.commit();
+    }
+  }
+
+  async function commitDoc(k, v) {
+    let payload;
+    if (k === K_CFG) { const c = { ...v }; delete c.adminEmail; delete c.adminPass; payload = JSON.stringify(c); }
+    else payload = JSON.stringify(v);
+    if (snap[k].s === payload) return;
+    snap[k].s = payload;
+    await db.collection('settings').doc(DOCS[k]).set({ json: payload, ts: Date.now() });
+  }
+
+  let resolveReady;
+  const listenersReady = new Promise(r => resolveReady = r);
+  const timers = {}, queued = {};
+
+  function flushKey(k) {
+    clearTimeout(timers[k]); delete timers[k];
+    if (!(k in queued)) return Promise.resolve();
+    const v = queued[k]; delete queued[k];
+    return listenersReady
+      .then(() => LISTS[k] ? commitList(k, v) : commitDoc(k, v))
+      .catch(e => { console.error(e); setBadge('Sync error', RED); });
+  }
+  window.fbPush = (k, v) => { queued[k] = v; clearTimeout(timers[k]); timers[k] = setTimeout(() => flushKey(k), 400); };
+  window.fbFlush = () => Promise.all(Object.keys(queued).map(flushKey))
+    .then(() => Promise.race([db.waitForPendingWrites(), new Promise(r => setTimeout(r, 4000))]))
+    .catch(() => {});
+
+  /* ---------- read from cloud (realtime) ---------- */
+  let rt;
+  function scheduleRefresh(k) {
+    clearTimeout(rt);
+    rt = setTimeout(() => {
+      try {
+        if (k === K_CFG) { applyConfigUI(); applyLogoUI(); }
+        if (k === K_KOTS) updateKotBadges();
+        populateTablesDropdown();
+        const cur = ['pos','kot','menu','tables','categories','reports','dashboard','customers','finance','expenses','suppliers','rc']
+          .find(id => { const e = document.getElementById('view-' + id); return e && !e.classList.contains('hidden'); });
+        if (cur) switchTab(cur);
+      } catch (e) { console.warn(e); }
+    }, 300);
+  }
+
+  function applyRemote(k, v) {
+    if (timers[k]) return; // local change not sent yet
+    if (JSON.stringify(v) === JSON.stringify(GET(k))) return;
+    if (k === K_KOTS && v.length > (GET(k) || []).length) showToast('🔥 New kitchen order received', 'info');
+    SET(k, v);
+    try { localStorage.setItem(k, JSON.stringify(v)); } catch {}
+    scheduleRefresh(k);
+  }
+
+  function setStatus(fromCache) {
+    if (navigator.onLine && !fromCache) setBadge('Cloud Synced', GREEN);
+    else setBadge('Offline - will sync', AMBER);
+  }
+
+  function listenList(k) {
+    return new Promise(res => {
+      let first = true;
+      db.collection(LISTS[k]).onSnapshot(s => {
+        const last = {}, sq = {}, arr = [];
+        s.docs.forEach(d => {
+          const x = d.data();
+          last[d.id] = x.json; sq[d.id] = x.seq || 0;
+          try { arr.push([x.seq || 0, JSON.parse(x.json)]); } catch {}
+        });
+        snap[k] = last; seqs[k] = sq;
+        if (!(s.metadata.fromCache && s.empty) && !s.metadata.hasPendingWrites) {
+          arr.sort((a, b) => b[0] - a[0]);
+          applyRemote(k, arr.map(a => a[1]));
+        }
+        setStatus(s.metadata.fromCache);
+        if (first) { first = false; res(); }
+      }, err => { console.error(err); setBadge('Sync error', RED); if (first) { first = false; res(); } });
+    });
+  }
+
+  function listenDoc(k) {
+    return new Promise(res => {
+      let first = true;
+      db.collection('settings').doc(DOCS[k]).onSnapshot(d => {
+        if (d.exists) {
+          const x = d.data();
+          snap[k].s = x.json;
+          if (!d.metadata.hasPendingWrites) {
+            try {
+              let v = JSON.parse(x.json);
+              if (k === K_CFG) v = { ...DEFAULT_CFG, ...v, adminEmail: shopConfig.adminEmail, adminPass: shopConfig.adminPass };
+              applyRemote(k, v);
+            } catch {}
+          }
+        }
+        if (first) { first = false; res(); }
+      }, err => { console.error(err); if (first) { first = false; res(); } });
+    });
+  }
+
+  /* ---------- start ---------- */
+  let started = false;
+  async function init() {
+    if (started) return;
+    started = true;
+    try {
+      try { await firebase.auth().signInAnonymously(); } catch (e) { console.warn('Anonymous auth failed:', e.message); }
+      const metaRef = db.collection('settings').doc('meta');
+      const meta = await metaRef.get();
+      if (!meta.exists) {
+        // first run: upload everything currently in this browser to Firebase
+        setBadge('Uploading data...', AMBER);
+        for (const k of ALL_KEYS) { if (LISTS[k]) await commitList(k, GET(k)); else await commitDoc(k, GET(k)); }
+        await metaRef.set({ initialized: true, ts: Date.now() });
+      }
+      await Promise.all([...Object.keys(LISTS).map(listenList), ...Object.keys(DOCS).map(listenDoc)]);
+      resolveReady();
+    } catch (e) {
+      console.error(e);
+      started = false;
+      setBadge('Offline - local only', AMBER);
+    }
+  }
+  setBadge('Connecting...', AMBER);
+  init();
+  window.addEventListener('online', init);
+  window.addEventListener('offline', () => setBadge('Offline - will sync', AMBER));
+})();
+</script>
+</body>
+</html>
