@@ -3008,5 +3008,317 @@ async function tqCustomerMode(table) {
   window.addEventListener('offline', () => setBadge('Offline - will sync', AMBER));
 })();
 </script>
+<!-- ===================== QR CUSTOMER ORDER ADDON ===================== -->
+<script>
+(function () {
+  const QR_FIREBASE = {
+    apiKey: "AIzaSyDVysBJIQTxXDfs533SkAQvQ0HMsty2OiU",
+    authDomain: "restaurant-website-test.firebaseapp.com",
+    projectId: "restaurant-website-test",
+    storageBucket: "restaurant-website-test.firebasestorage.app",
+    messagingSenderId: "837789642324",
+    appId: "1:837789642324:web:d9a32bfb793f6427f4c7c1"
+  };
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+  if (typeof TQ_TABLE !== 'undefined' && TQ_TABLE !== null) customerSide();
+  else posSide();
+
+  /* ================= POS SIDE: QR order receive, reprice, merge ================= */
+  function posSide() {
+    // Customer-er pathano dam trust kora hoy na: POS-er menu theke dam abar boshano hoy
+    function repriceItem(i) {
+      if (!i || !i.qr) return;
+      const p = menuItems.find(m => m.name === i.name);
+      const v = p && p.variants.find(x => x.size === i.size);
+      if (p && v) {
+        i.productId = p.id; i.key = p.id + '_' + i.size; i.category = p.category;
+        i.sku = v.sku; i.price = Number(v.price) || 0; i.buyPrice = Number(p.buyPrice) || 0;
+      } else {
+        i.price = 0; i.note = ((i.note || '') + ' [dish not found - check price]').trim();
+      }
+    }
+    const repriceAll = () => activeKots.forEach(k => k.items.forEach(repriceItem));
+
+    // Ek table-er sob KOT (POS + QR) ek bill-e merge hoye load hobe
+    const origLoad = window.loadKotToCart;
+    window.loadKotToCart = function (kotId) {
+      const first = activeKots.find(k => k.id === kotId);
+      if (!first) return;
+      repriceAll();
+      if (first.orderType === 'Dine-In') {
+        const others = activeKots.filter(k => k.id !== kotId && k.orderType === 'Dine-In' && k.table === first.table);
+        others.forEach(o => {
+          o.items.forEach(ci => {
+            const ex = first.items.find(x => x.key === ci.key);
+            if (ex) ex.qty += ci.qty; else first.items.push({ ...ci });
+          });
+          if (!/\(QR\)/.test(first.customerName) && /\(QR\)/.test(o.customerName) && first.customerName === 'Guest') first.customerName = o.customerName;
+        });
+        if (others.length) {
+          const ids = others.map(o => o.id);
+          activeKots = activeKots.filter(k => !ids.includes(k.id));
+        }
+        saveLS(K_KOTS, activeKots);
+      }
+      origLoad(kotId);
+    };
+
+    const origKot = window.renderKotScreen;
+    window.renderKotScreen = function () { repriceAll(); origKot(); };
+    const origDash = window.renderDashboard;
+    window.renderDashboard = function () { repriceAll(); origDash(); };
+
+    // Notun QR order ashle beep + toast
+    function beep() {
+      try {
+        const c = new (window.AudioContext || window.webkitAudioContext)();
+        [0, 0.25].forEach(t => {
+          const o = c.createOscillator(), g = c.createGain();
+          o.connect(g); g.connect(c.destination); o.frequency.value = 880; g.gain.value = 0.15;
+          o.start(c.currentTime + t); o.stop(c.currentTime + t + 0.18);
+        });
+      } catch (e) {}
+    }
+    let tries = 0;
+    (function listen() {
+      if (typeof firebase === 'undefined' || !firebase.apps.length) { if (tries++ < 30) setTimeout(listen, 1500); return; }
+      let first = true;
+      firebase.firestore().collection('kots').onSnapshot(s => {
+        if (first) { first = false; return; }
+        s.docChanges().forEach(c => {
+          if (c.type === 'added' && c.doc.id.indexOf('QR-') === 0 && !c.doc.metadata.hasPendingWrites) {
+            beep();
+            let t = '';
+            try { t = JSON.parse(c.doc.data().json).table; } catch (e) {}
+            showToast('📱 New QR order' + (t ? ' from ' + t : ''), 'success');
+          }
+        });
+      });
+    })();
+  }
+
+  /* ================= CUSTOMER SIDE: menu + order ================= */
+  async function customerSide() {
+    const table = String(TQ_TABLE || '').trim().slice(0, 30);
+    let n = 0;
+    while (!document.getElementById('cm-list') && n++ < 100) await sleep(100);
+    const root = document.getElementById('customer-menu');
+    if (!root) return;
+
+    let d = null;
+    try { const r = await fetch('menu.json?t=' + Date.now(), { cache: 'no-store' }); if (r.ok) d = await r.json(); } catch (e) {}
+    if (!d) d = { name: shopConfig.name, tagline: shopConfig.tagline, address: shopConfig.address, phone: shopConfig.phone, logo: shopConfig.logo || '', categories: shopConfig.categories, menu: menuItems };
+
+    let cat = 'all', q = '';
+    const cart = {};            // key "pi|vi" -> {name,size,price,qty,cat,note}
+    const fmt = v => Math.round(Number(v) || 0).toLocaleString('en-US');
+    const totals = () => Object.values(cart).reduce((a, i) => ({ q: a.q + i.qty, t: a.t + i.qty * i.price }), { q: 0, t: 0 });
+
+    root.innerHTML = `
+      <header class="bg-[#12141a] text-white px-4 py-4 sticky top-0 z-10">
+        <div class="flex items-center gap-3 max-w-2xl mx-auto">
+          <img src="${d.logo || DEFAULT_LOGO}" class="w-12 h-12 rounded-xl bg-white object-contain" alt="">
+          <div class="flex-1 min-w-0">
+            <div class="font-extrabold text-base truncate">${esc(d.name)}</div>
+            <div class="text-[11px] text-slate-400 truncate">${esc(d.tagline || '')}</div>
+          </div>
+          <span class="px-3 py-1 rounded-full bg-rose-600 text-xs font-bold whitespace-nowrap">${esc(table || 'Table ?')}</span>
+        </div>
+      </header>
+      <div id="qo-main" class="max-w-2xl mx-auto p-3 space-y-3 pb-28">
+        <input id="qo-q" type="text" placeholder="Khabar khujun..." class="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:outline-none" style="font-size:16px">
+        <div id="qo-chips" class="flex gap-1.5 overflow-x-auto pb-1"></div>
+        <div id="qo-list" class="space-y-4"></div>
+        <div class="text-center text-[11px] text-slate-400 pb-6">${esc(d.address || '')} ${d.phone ? '• ' + esc(d.phone) : ''}</div>
+      </div>
+      <div id="qo-done" class="hidden max-w-2xl mx-auto p-6"></div>
+
+      <div id="qo-bar" class="hidden fixed bottom-0 inset-x-0 z-20 p-3 bg-gradient-to-t from-slate-50 to-transparent">
+        <button data-a="open" class="max-w-2xl mx-auto w-full flex items-center justify-between bg-rose-600 text-white rounded-2xl px-5 py-3.5 shadow-xl font-bold">
+          <span id="qo-bar-q">0 items</span><span>View Order →</span><span id="qo-bar-t">৳ 0</span>
+        </button>
+      </div>
+
+      <div id="qo-sheet" class="hidden fixed inset-0 z-30 bg-slate-900/60 flex items-end sm:items-center justify-center">
+        <div class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-2xl max-h-[90vh] flex flex-col">
+          <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
+            <div class="font-extrabold text-base">Your Order • ${esc(table)}</div>
+            <button data-a="close" class="text-slate-400 text-2xl leading-none">×</button>
+          </div>
+          <div id="qo-sheet-items" class="flex-1 overflow-y-auto px-5 py-3 divide-y divide-slate-100"></div>
+          <div class="px-5 py-4 border-t border-slate-200 space-y-3">
+            <input id="qo-name" type="text" maxlength="30" placeholder="Apnar naam (optional)" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm" style="font-size:16px">
+            <div class="flex justify-between items-baseline">
+              <span class="font-bold">Total</span><span id="qo-sheet-total" class="text-xl font-extrabold text-rose-600">৳ 0</span>
+            </div>
+            <div class="text-[11px] text-slate-400">Final bill restaurant-er dam onujayi hobe. Payment khabar shesh-e counter-e.</div>
+            <button id="qo-place" data-a="place" class="w-full py-3.5 bg-rose-600 text-white rounded-2xl font-extrabold text-base">Place Order • অর্ডার করুন</button>
+            <div id="qo-err" class="hidden text-center text-xs font-semibold text-rose-600"></div>
+          </div>
+        </div>
+      </div>`;
+
+    const $ = id => document.getElementById(id);
+
+    function ctrl(k) {
+      const c = cart[k];
+      return c
+        ? `<div class="flex items-center gap-2"><button data-a="dec" data-k="${k}" class="w-8 h-8 rounded-lg bg-slate-100 font-bold text-lg leading-none">−</button><span class="w-5 text-center font-bold text-sm">${c.qty}</span><button data-a="inc" data-k="${k}" class="w-8 h-8 rounded-lg bg-rose-600 text-white font-bold text-lg leading-none">+</button></div>`
+        : `<button data-a="inc" data-k="${k}" class="px-4 py-1.5 rounded-lg bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold">Add</button>`;
+    }
+
+    function drawChips() {
+      const cats = ['all', ...(d.categories || [])];
+      $('qo-chips').innerHTML = cats.map(c => `<button data-a="cat" data-c="${esc(c)}" class="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap ${cat === c ? 'bg-[#e11d2e] text-white' : 'bg-white border border-slate-200 text-slate-700'}">${c === 'all' ? 'All' : esc(c)}</button>`).join('');
+    }
+
+    function drawList() {
+      const groups = {};
+      d.menu.forEach((p, pi) => {
+        if (cat !== 'all' && p.category !== cat) return;
+        if (q && !p.name.toLowerCase().includes(q)) return;
+        if (!p.variants.some(v => v.on !== false)) return;
+        (groups[p.category] = groups[p.category] || []).push([p, pi]);
+      });
+      $('qo-list').innerHTML = Object.keys(groups).length ? Object.entries(groups).map(([c, items]) => `
+        <div>
+          <div class="text-sm font-extrabold text-slate-800 mb-2">${esc(c)}</div>
+          <div class="space-y-2">${items.map(([p, pi]) => `
+            <div class="bg-white border border-slate-200 rounded-xl p-3">
+              <div class="font-bold text-slate-900 text-sm">${esc(p.name)}</div>
+              <div class="mt-2 space-y-2">${p.variants.map((v, vi) => v.on === false ? '' : `
+                <div class="flex items-center justify-between gap-2">
+                  <div class="text-xs"><span class="text-slate-600">${esc(v.size)}</span> <span class="font-extrabold text-rose-600 ml-1">৳ ${fmt(v.price)}</span></div>
+                  ${ctrl(pi + '|' + vi)}
+                </div>`).join('')}
+              </div>
+            </div>`).join('')}
+          </div>
+        </div>`).join('') : '<div class="py-12 text-center text-slate-400 text-sm">Kono khabar paoa jayni</div>';
+    }
+
+    function updateBar() {
+      const t = totals();
+      $('qo-bar').classList.toggle('hidden', !t.q || !$('qo-sheet').classList.contains('hidden') === false && !t.q);
+      $('qo-bar-q').textContent = t.q + (t.q === 1 ? ' item' : ' items');
+      $('qo-bar-t').textContent = '৳ ' + fmt(t.t);
+      $('qo-bar').classList.toggle('hidden', !t.q);
+    }
+
+    function drawSheet() {
+      const rows = Object.entries(cart);
+      $('qo-sheet-items').innerHTML = rows.map(([k, i]) => `
+        <div class="py-3">
+          <div class="flex items-center justify-between gap-2">
+            <div class="min-w-0">
+              <div class="font-bold text-sm truncate">${esc(i.name)}</div>
+              <div class="text-[11px] text-slate-500">${esc(i.size)} • ৳ ${fmt(i.price)}</div>
+            </div>
+            ${ctrl(k)}
+            <div class="w-16 text-right font-extrabold text-sm">৳ ${fmt(i.price * i.qty)}</div>
+          </div>
+          <input data-note="${k}" value="${esc(i.note)}" maxlength="60" placeholder="Note (jemon: jhal kom)" class="mt-2 w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs" style="font-size:16px">
+        </div>`).join('') || '<div class="py-8 text-center text-slate-400 text-sm">Order empty</div>';
+      $('qo-sheet-total').textContent = '৳ ' + fmt(totals().t);
+    }
+
+    function refresh() {
+      drawList(); updateBar();
+      if (!$('qo-sheet').classList.contains('hidden')) {
+        drawSheet();
+        if (!Object.keys(cart).length) $('qo-sheet').classList.add('hidden');
+      }
+    }
+
+    function showErr(m) { const e = $('qo-err'); e.textContent = m; e.classList.toggle('hidden', !m); }
+
+    async function place() {
+      showErr('');
+      const lines = Object.values(cart);
+      if (!lines.length) return;
+      if (!table) { showErr('Table number paoa jayni. QR abar scan korun.'); return; }
+      let last = 0;
+      try { last = Number(localStorage.getItem('qo_last')) || 0; } catch (e) {}
+      if (Date.now() - last < 15000) { showErr('Ektu opekkha korun, abar order pathate 15 second lagbe.'); return; }
+
+      const btn = $('qo-place');
+      btn.disabled = true; btn.textContent = 'Sending...';
+      const nm = ($('qo-name').value || '').trim().slice(0, 30) || 'Guest';
+      const id = 'QR-' + Date.now().toString().slice(-6) + Math.floor(Math.random() * 90 + 10);
+      const kot = {
+        id, time: new Date().toISOString(), orderType: 'Dine-In', table,
+        customerName: nm + ' (QR)',
+        items: lines.map(i => ({
+          key: i.name + '_' + i.size, productId: '', name: i.name, category: i.cat, size: i.size,
+          sku: '', price: i.price, buyPrice: 0, qty: i.qty, note: i.note || '', qr: true
+        }))
+      };
+      try {
+        if (typeof firebase === 'undefined') throw new Error('no firebase');
+        const app = firebase.apps.find(a => a.name === 'qrcust') || firebase.initializeApp(QR_FIREBASE, 'qrcust');
+        try { await app.auth().signInAnonymously(); } catch (e) {}
+        await Promise.race([
+          app.firestore().collection('kots').doc(id).set({ json: JSON.stringify(kot), seq: Date.now() }),
+          new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 15000))
+        ]);
+        try { localStorage.setItem('qo_last', String(Date.now())); } catch (e) {}
+        const t = totals();
+        $('qo-sheet').classList.add('hidden');
+        $('qo-main').classList.add('hidden'); $('qo-bar').classList.add('hidden');
+        $('qo-done').classList.remove('hidden');
+        $('qo-done').innerHTML = `
+          <div class="bg-white border border-emerald-200 rounded-2xl p-8 text-center shadow-sm">
+            <div class="text-5xl">✅</div>
+            <div class="text-xl font-extrabold mt-3">Order Placed!</div>
+            <div class="text-sm text-slate-600 mt-1">Apnar order kitchen-e pouche gechhe.</div>
+            <div class="mt-4 inline-block px-4 py-2 bg-slate-100 rounded-xl font-extrabold">${esc(id)} • ${esc(table)}</div>
+            <div class="mt-3 text-sm text-slate-500">${t.q} items • ৳ ${fmt(t.t)}</div>
+            <button data-a="more" class="mt-6 w-full py-3 bg-rose-600 text-white rounded-2xl font-bold">Aro order korun</button>
+          </div>`;
+        Object.keys(cart).forEach(k => delete cart[k]);
+      } catch (e) {
+        console.error(e);
+        btn.disabled = false; btn.textContent = 'Place Order • অর্ডার করুন';
+        showErr('Order pathano gelo na. Internet check kore abar chesta korun ba waiter-ke bolun.');
+      }
+    }
+
+    root.addEventListener('click', e => {
+      const b = e.target.closest('[data-a]');
+      if (!b) return;
+      const a = b.dataset.a, k = b.dataset.k;
+      if (a === 'inc') {
+        const [pi, vi] = k.split('|').map(Number);
+        const p = d.menu[pi], v = p && p.variants[vi];
+        if (!v || v.on === false) return;
+        if (!cart[k]) {
+          if (Object.keys(cart).length >= 40) return;
+          cart[k] = { name: p.name, size: v.size, price: Number(v.price) || 0, qty: 0, cat: p.category, note: '' };
+        }
+        if (cart[k].qty < 20) cart[k].qty++;
+        refresh();
+      } else if (a === 'dec') {
+        if (cart[k]) { cart[k].qty--; if (cart[k].qty <= 0) delete cart[k]; }
+        refresh();
+      } else if (a === 'cat') { cat = b.dataset.c; drawChips(); drawList(); }
+      else if (a === 'open') { showErr(''); drawSheet(); $('qo-sheet').classList.remove('hidden'); }
+      else if (a === 'close') { $('qo-sheet').classList.add('hidden'); }
+      else if (a === 'place') place();
+      else if (a === 'more') {
+        $('qo-done').classList.add('hidden'); $('qo-main').classList.remove('hidden');
+        refresh(); window.scrollTo(0, 0);
+      }
+    });
+    root.addEventListener('input', e => {
+      if (e.target.id === 'qo-q') { q = e.target.value.toLowerCase().trim(); drawList(); }
+      else if (e.target.dataset && e.target.dataset.note !== undefined && cart[e.target.dataset.note]) cart[e.target.dataset.note].note = e.target.value.trim().slice(0, 60);
+    });
+
+    drawChips(); drawList(); updateBar();
+  }
+})();
+</script>
+<!-- =================== END QR CUSTOMER ORDER ADDON =================== -->
 </body>
 </html>
