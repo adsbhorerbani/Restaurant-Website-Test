@@ -2954,7 +2954,7 @@ async function tqCustomerMode(table) {
   function listenList(k) {
     return new Promise(res => {
       let first = true;
-      db.collection(LISTS[k]).onSnapshot(s => {
+      db.collection(LISTS[k]).onSnapshot({ includeMetadataChanges: true }, s => {
         const last = {}, sq = {}, arr = [];
         s.docs.forEach(d => {
           const x = d.data();
@@ -2975,7 +2975,7 @@ async function tqCustomerMode(table) {
   function listenDoc(k) {
     return new Promise(res => {
       let first = true;
-      db.collection('settings').doc(DOCS[k]).onSnapshot(d => {
+      db.collection('settings').doc(DOCS[k]).onSnapshot({ includeMetadataChanges: true }, d => {
         if (d.exists) {
           const x = d.data();
           snap[k].s = x.json;
@@ -2987,6 +2987,7 @@ async function tqCustomerMode(table) {
             } catch {}
           }
         }
+        setStatus(d.metadata.fromCache);
         if (first) { first = false; res(); }
       }, err => { console.error(err); if (first) { first = false; res(); } });
     });
