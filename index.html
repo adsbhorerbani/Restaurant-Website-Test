@@ -4800,113 +4800,104 @@ async function tqCustomerMode(table) {
   init();
 })();
 </script>
-<!-- ===================== FOOD CATEGORY CARDS ADDON =====================
+<!-- ===================== FOOD CATEGORY CARDS + SEE MORE ADDON =====================
      Paste this whole block just BEFORE </body> (after the last addon).
      Nothing else in your file needs to change.
-====================================================================== -->
+================================================================================== -->
 <style>
-  /* ---------- Heading row ---------- */
-  .pmc-head { display:flex; align-items:center; justify-content:space-between; margin:0 2px 12px; font-family:'Urbanist','Inter',system-ui,sans-serif; }
-  .pmc-head h2 { margin:0; font-size:21px; font-weight:800; color:#10211e; letter-spacing:-.2px; }
-  .pmc-head button { background:none; border:0; padding:4px 0; font-family:inherit; font-size:14px; font-weight:800; color:#e11d2e; cursor:pointer; touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
+  /* ---------- Section header ---------- */
+  .pmc-head { display:flex; align-items:center; justify-content:space-between; margin:2px 2px 12px; font-family:'Urbanist','Inter',system-ui,sans-serif; }
+  .pmc-title { font-size:19px; font-weight:800; color:#10211e; margin:0; }
+  .pmc-more { background:none; border:0; padding:6px 2px; font-family:inherit; font-size:14px; font-weight:800; color:#e5533d; cursor:pointer; touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
+  .pmc-more:active { opacity:.6; }
 
-  /* ---------- Category cards row ---------- */
+  /* ---------- Category cards (replaces pill tabs) ---------- */
   .pm2 .pm-tabs {
     position:static !important; top:auto !important;
-    display:flex; flex-wrap:nowrap; gap:12px;
-    margin:0 -14px 14px !important; padding:4px 16px 14px !important;
-    background:transparent !important;
-    -webkit-backdrop-filter:none !important; backdrop-filter:none !important;
-    overflow-x:auto; overflow-y:hidden; scrollbar-width:none;
-    -webkit-overflow-scrolling:touch;
+    margin:0 0 14px !important; padding:2px 2px 8px !important;
+    background:transparent !important; backdrop-filter:none !important; -webkit-backdrop-filter:none !important;
+    display:flex !important; flex-wrap:nowrap !important; gap:10px !important;
+    overflow-x:auto !important; overflow-y:hidden; align-items:stretch !important;
+    scrollbar-width:none;
   }
   .pm2 .pm-tabs::-webkit-scrollbar { display:none; }
 
-  .pm2 .pm-tabs .pm-tab {
-    flex:0 0 auto; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px;
-    min-width:92px; height:88px; padding:10px 14px;
-    border-radius:20px; border:2px solid transparent;
-    background:#f3f5f6 !important; color:#1c2b28 !important;
-    font-size:12.5px !important; font-weight:700 !important; line-height:1.15; text-align:center; white-space:nowrap;
-    box-shadow:0 3px 10px rgba(20,60,55,.10) !important;
-    transition:transform .15s, background .15s, box-shadow .15s;
+  .pm2 .pm-tab {
+    flex:0 0 auto; min-width:88px;
+    display:flex !important; flex-direction:column; align-items:center; justify-content:center; gap:7px;
+    padding:12px 10px !important; border-radius:18px !important;
+    background:#f4f5f7 !important; color:#1b2a27 !important;
+    font-size:13px !important; font-weight:800 !important; line-height:1.2; text-align:center;
+    box-shadow:0 2px 8px rgba(20,60,55,.08) !important;
+    transition:transform .15s, background .15s;
   }
-  .pm2 .pm-tabs .pm-tab::before {
-    content:attr(data-ic); font-size:30px; line-height:1;
-    filter:drop-shadow(0 3px 3px rgba(0,0,0,.18));
-  }
-  .pm2 .pm-tabs .pm-tab:active { transform:scale(.95); }
-  .pm2 .pm-tabs .pm-tab.on {
-    background:#1f7f75 !important; color:#fff !important;
-    border-color:#1f7f75; font-size:12.5px !important; font-weight:800 !important;
-    box-shadow:0 8px 18px rgba(31,127,117,.38) !important;
+  .pm2 .pm-tab::before { content:attr(data-ico); font-size:30px; line-height:1; }
+  .pm2 .pm-tab:active { transform:scale(.95); }
+  .pm2 .pm-tab.on {
+    background:#1f7f75 !important; color:#fff !important; font-size:13px !important;
+    box-shadow:0 6px 14px rgba(31,127,117,.35) !important;
   }
 
-  @media (min-width:640px) {
-    .pm2 .pm-tabs { margin:0 -24px 14px !important; padding:4px 24px 14px !important; }
-    .pm2 .pm-tabs .pm-tab { min-width:104px; height:96px; font-size:13.5px !important; }
-    .pm2 .pm-tabs .pm-tab::before { font-size:34px; }
+  /* ---------- "See More" opened: all categories in a grid ---------- */
+  .pm2 .pm-tabs.pmc-open {
+    display:grid !important; overflow:visible !important;
+    grid-template-columns:repeat(auto-fill, minmax(92px, 1fr)); gap:10px !important;
   }
-  @media (min-width:768px) {
-    .pm2 .pm-tabs { margin:0 0 14px !important; padding:4px 2px 14px !important; }
-  }
-  @media (min-width:1024px) {
-    .pm2 .pm-tabs { flex-wrap:wrap; overflow:visible; row-gap:12px; }
-    .pm2 .pm-tabs .pm-tab:hover { transform:translateY(-3px); }
-  }
+  .pm2 .pm-tabs.pmc-open .pm-tab { min-width:0; width:100%; }
 </style>
 
 <script>
 (function () {
   if (typeof TQ_TABLE === 'undefined' || TQ_TABLE === null) return;   // customer QR page only
-  const $ = id => document.getElementById(id);
+
   const sleep = ms => new Promise(r => setTimeout(r, ms));
 
   const icon = c => {
-    c = String(c).toLowerCase();
+    c = String(c || '').toLowerCase();
     if (c === 'all') return '🍽️';
-    if (/pizza/.test(c)) return '🍕';
-    if (/burger|fast/.test(c)) return '🍔';
     if (/biri|rice|polao|tehari|kacchi/.test(c)) return '🍛';
+    if (/burger/.test(c)) return '🍔';
+    if (/pizza/.test(c)) return '🍕';
+    if (/fast/.test(c)) return '🍟';
     if (/chin|noodle|thai/.test(c)) return '🥡';
-    if (/grill|kebab|bbq|tandoor/.test(c)) return '🍢';
-    if (/drink|juice|beverage|coffee|tea/.test(c)) return '🥤';
-    if (/dessert|sweet|ice/.test(c)) return '🍨';
+    if (/grill|kebab|bbq|tandoor/.test(c)) return '🍗';
+    if (/snack/.test(c)) return '🥪';
+    if (/drink|juice|coffee|tea/.test(c)) return '🥤';
+    if (/dessert|sweet|ice|cake/.test(c)) return '🍰';
     if (/soup|salad/.test(c)) return '🥗';
-    if (/snack/.test(c)) return '🍟';
     return '🍴';
   };
 
   async function init() {
     let n = 0;
     while (!document.querySelector('.pm2 #pm-tabs') && n++ < 400) await sleep(100);
-    const tabs = $('pm-tabs');
-    if (!tabs) return;
+    const tabs = document.getElementById('pm-tabs');
+    if (!tabs || document.getElementById('pmc-head')) return;
 
-    // "Food Category ........ See Menu →" heading
-    if (!$('pmc-head')) {
-      const h = document.createElement('div');
-      h.id = 'pmc-head'; h.className = 'pmc-head';
-      h.innerHTML = '<h2>Food Category</h2><button type="button">See Menu →</button>';
-      tabs.parentNode.insertBefore(h, tabs);
-      h.querySelector('button').addEventListener('click', () => {
-        const all = tabs.querySelector('.pm-tab[data-c="all"]');
-        if (all && !all.classList.contains('on')) all.click();
-        const g = $('pm-grid');
-        if (g) g.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      });
-    }
+    /* ---- Header: "Food Category" + "See More →" ---- */
+    const head = document.createElement('div');
+    head.id = 'pmc-head';
+    head.className = 'pmc-head';
+    head.innerHTML = '<h2 class="pmc-title">Food Category</h2><button type="button" class="pmc-more" id="pmc-more">See More →</button>';
+    tabs.parentNode.insertBefore(head, tabs);
 
-    // har tab-e emoji (CSS ::before diye, tai text/category sheet kharap hobe na)
+    const moreBtn = document.getElementById('pmc-more');
+    moreBtn.addEventListener('click', () => {
+      const open = tabs.classList.toggle('pmc-open');
+      moreBtn.textContent = open ? 'Show Less ←' : 'See More →';
+    });
+
+    /* ---- Put an emoji on every category card (re-runs when tabs redraw) ---- */
     function decorate() {
       tabs.querySelectorAll('.pm-tab').forEach(t => {
-        const ic = icon(t.dataset.c || t.textContent);
-        if (t.getAttribute('data-ic') !== ic) t.setAttribute('data-ic', ic);
+        const ico = icon(t.dataset.c);
+        if (t.dataset.ico !== ico) t.dataset.ico = ico;
       });
     }
     new MutationObserver(decorate).observe(tabs, { childList: true });
     decorate();
   }
+
   init();
 })();
 </script>
