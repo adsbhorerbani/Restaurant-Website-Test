@@ -4204,5 +4204,324 @@ async function tqCustomerMode(table) {
   }
 })();
 </script>
+<!-- ===================== BOTTOM NAV + CALL WAITER + DESIGN ADDON ===================== -->
+<style>
+  /* ---------- Prettier customer menu ---------- */
+  .pm { background:linear-gradient(180deg,#c3e6df 0%,#a9d3cc 100%) !important; }
+  .pm2 .pm-wrap { background:transparent; }
+  .pm2 .pm-head { background:linear-gradient(135deg,#ffffff,#eef8f6); box-shadow:0 8px 28px rgba(20,60,55,.10); }
+  .pm2 .pm-title { background:linear-gradient(90deg,#0f5f56,#27a394); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .pm2 .pm-sub { display:inline-block; background:#e2f3f0; color:#1b6b62; padding:4px 12px; border-radius:999px; margin-top:8px; font-weight:700; }
+  .pm2 .pm-search { background:#f1f7f6; border:1px solid #dfeceA; border:1px solid #dbe9e6; border-radius:16px; padding:11px 14px; }
+  .pm2 .pm-body { background:transparent; border-top-left-radius:44px; border-top-right-radius:44px; padding-bottom:200px !important; }
+
+  .pm2 .pm-tabs { gap:10px; padding:2px 2px 18px; }
+  .pm2 .pm-tab { padding:9px 18px; border-radius:999px; background:rgba(255,255,255,.6); font-size:14px !important; font-weight:700; color:#27403c; transition:.15s; }
+  .pm2 .pm-tab.on { background:#1f7f75; color:#fff !important; font-size:14px !important; font-weight:800; box-shadow:0 6px 14px rgba(31,127,117,.35); }
+
+  .pm2 .pm-card { border-radius:22px; box-shadow:0 5px 16px rgba(20,60,55,.12); transition:transform .18s, box-shadow .18s; }
+  .pm2 .pm-imgbox { aspect-ratio:1/.82; overflow:hidden; }
+  .pm2 .pm-imgbox img { transition:transform .4s; }
+  .pm2 .pm-card:hover .pm-imgbox img { transform:scale(1.07); }
+  .pm2 .pm-imgbox::after { content:""; position:absolute; left:0; right:0; bottom:0; height:40%; background:linear-gradient(transparent,rgba(0,0,0,.16)); pointer-events:none; }
+  .pm2 .pm-ph { font-size:46px; background:linear-gradient(135deg,#f1f8f6,#d9ebe7); }
+  .pm2 .pm-name { font-weight:800; color:#10211e; }
+  .pm2 .pm-meta { gap:6px; flex-wrap:wrap; }
+  .pm2 .pm-t { background:#e4f4f1; padding:3px 9px; border-radius:999px; }
+  .pm2 .pm-r { background:#fdeceb; padding:3px 9px; border-radius:999px; }
+  .pm2 .pm-price { color:#0f5f56; font-size:18px; }
+  .pm2 .pm-more { background:#1f7f75; color:#fff; border-color:#1f7f75; }
+  .pm2 .pm-more:active { background:#17665d; }
+  .pm2 .pm-qty { box-shadow:0 3px 8px rgba(0,0,0,.2); }
+  .pm2 .pm-sheet { box-shadow:0 -10px 40px rgba(0,0,0,.25); }
+  .pm2 .pm-primary { box-shadow:0 8px 18px rgba(31,127,117,.3); }
+
+  /* View Order bar nav er upore thakbe */
+  .pm2 .pm-bar { bottom:calc(86px + env(safe-area-inset-bottom)) !important; }
+
+  /* ---------- Fixed bottom shortcut bar ---------- */
+  #pmx-nav, #pmx-cat, #pmx-callbox, #pmx-toast { font-family:'Urbanist','Inter',system-ui,sans-serif; }
+  #pmx-nav { position:fixed; left:0; right:0; bottom:0; z-index:25; display:none; justify-content:center; padding:0 10px calc(10px + env(safe-area-inset-bottom)); pointer-events:none; }
+  #pmx-nav .pmx-in { pointer-events:auto; width:100%; max-width:560px; background:rgba(255,255,255,.97); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); border-radius:26px; box-shadow:0 10px 34px rgba(15,60,55,.28); display:grid; grid-template-columns:repeat(4,1fr); gap:2px; padding:8px 6px; }
+  .pmx-b { border:0; background:none; display:flex; flex-direction:column; align-items:center; gap:3px; padding:7px 2px; border-radius:18px; font-family:inherit; font-size:11.5px; font-weight:700; color:#5d6f6c; cursor:pointer; position:relative; transition:.15s; -webkit-tap-highlight-color:transparent; }
+  .pmx-b svg { width:23px; height:23px; }
+  .pmx-b:active { transform:scale(.93); }
+  .pmx-b.on { color:#1f7f75; background:#e6f4f1; }
+  .pmx-b.has { color:#1f7f75; }
+  .pmx-call { color:#d9482f; }
+  .pmx-call:active { background:#fdeceb; }
+  .pmx-badge { position:absolute; top:1px; left:calc(50% + 6px); background:#e5533d; color:#fff; font-size:10px; font-weight:800; min-width:17px; height:17px; border-radius:9px; display:none; align-items:center; justify-content:center; padding:0 4px; }
+
+  /* Category sheet + Call dialog */
+  #pmx-cat, #pmx-callbox { position:fixed; inset:0; z-index:35; background:rgba(10,30,28,.55); display:none; justify-content:center; }
+  #pmx-cat { align-items:flex-end; }
+  #pmx-callbox { align-items:center; padding:20px; }
+  @keyframes pmxUp { from { transform:translateY(40px); opacity:0; } to { transform:none; opacity:1; } }
+  .pmx-sheet { background:#fff; width:100%; max-width:520px; border-radius:28px 28px 0 0; padding:18px 18px 26px; animation:pmxUp .22s ease; max-height:80vh; overflow-y:auto; }
+  .pmx-h { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; font-size:19px; font-weight:800; }
+  .pmx-h button { background:none; border:0; font-size:30px; color:#8a9a97; cursor:pointer; line-height:1; }
+  .pmx-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .pmx-chip { display:flex; align-items:center; gap:10px; padding:14px; border-radius:16px; border:1px solid #dbe9e6; background:#f4faf9; font-family:inherit; font-size:14px; font-weight:700; color:#18302c; cursor:pointer; text-align:left; }
+  .pmx-chip span { font-size:22px; }
+  .pmx-chip.on { background:#1f7f75; color:#fff; border-color:#1f7f75; }
+  .pmx-dlg { background:#fff; width:100%; max-width:340px; border-radius:26px; padding:26px 22px 22px; text-align:center; animation:pmxUp .22s ease; }
+  .pmx-em { font-size:46px; }
+  .pmx-dlg h3 { margin:8px 0 4px; font-size:20px; font-weight:800; }
+  .pmx-dlg p { margin:0 0 18px; color:#5d6f6c; font-size:13.5px; font-weight:600; }
+  .pmx-row { display:flex; gap:10px; }
+  .pmx-row button { flex:1; padding:13px; border-radius:14px; border:0; font-family:inherit; font-size:14px; font-weight:800; cursor:pointer; }
+  .pmx-no { background:#eef2f1; color:#31413e; }
+  .pmx-yes { background:#e5533d; color:#fff; }
+  .pmx-yes:disabled { opacity:.6; }
+  #pmx-toast { position:fixed; left:50%; bottom:calc(104px + env(safe-area-inset-bottom)); transform:translateX(-50%); background:#12201d; color:#fff; padding:11px 18px; border-radius:14px; font-size:13px; font-weight:700; z-index:40; display:none; max-width:88vw; text-align:center; box-shadow:0 8px 22px rgba(0,0,0,.3); }
+
+  /* ---------- POS side: waiter call panel ---------- */
+  #pmx-calls { position:fixed; top:64px; right:12px; z-index:90; display:none; flex-direction:column; gap:8px; max-width:300px; font-family:'Inter',system-ui,sans-serif; }
+  .pmx-ci { background:#fff; border:2px solid #e5533d; border-radius:14px; padding:10px 12px; box-shadow:0 8px 24px rgba(0,0,0,.22); display:flex; align-items:center; gap:10px; font-size:13px; }
+  .pmx-ci .t { flex:1; min-width:0; }
+  .pmx-ci .t b { display:block; font-size:14px; color:#101828; }
+  .pmx-ci .t span { font-size:11px; color:#667085; }
+  .pmx-ci button { background:#e11d2e; color:#fff; border:0; border-radius:10px; padding:7px 12px; font-weight:700; font-size:12px; cursor:pointer; }
+</style>
+
+<script>
+(function () {
+  const QR_FIREBASE = {
+    apiKey: "AIzaSyDVysBJIQTxXDfs533SkAQvQ0HMsty2OiU",
+    authDomain: "restaurant-website-test.firebaseapp.com",
+    projectId: "restaurant-website-test",
+    storageBucket: "restaurant-website-test.firebasestorage.app",
+    messagingSenderId: "837789642324",
+    appId: "1:837789642324:web:d9a32bfb793f6427f4c7c1"
+  };
+  const $ = id => document.getElementById(id);
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const isCustomer = (typeof TQ_TABLE !== 'undefined' && TQ_TABLE !== null);
+
+  /* ---- Console warning fix: autocomplete attributes ---- */
+  (function () {
+    const set = (id, v) => { const el = $(id); if (el) el.setAttribute('autocomplete', v); };
+    set('login-email', 'username');
+    set('login-password', 'current-password');
+    set('set-admin-email', 'off');
+    set('set-admin-pass', 'off');
+  })();
+
+  if (isCustomer) customerNav(); else posCalls();
+
+  /* =====================================================================
+     CUSTOMER SIDE: bottom shortcut bar (Home / Category / Cart / Call Waiter)
+     ===================================================================== */
+  async function customerNav() {
+    let n = 0;
+    while (!document.querySelector('.pm2 #pm-grid') && n++ < 400) await sleep(100);
+    if (!document.querySelector('.pm2')) return;
+    const table = String(TQ_TABLE || '').trim().slice(0, 30);
+
+    const I = {
+      home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg>',
+      cat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>',
+      cart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h18l-1.8 10.2a1.5 1.5 0 0 1-1.5 1.3H6.3a1.5 1.5 0 0 1-1.5-1.3z"/><path d="M8 9l2.5-5M16 9l-2.5-5"/></svg>',
+      call: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 17V11a6 6 0 0 1 12 0v6"/><path d="M4 17h16"/><path d="M10 20a2 2 0 0 0 4 0"/><path d="M12 3V2"/></svg>'
+    };
+
+    const nav = document.createElement('nav');
+    nav.id = 'pmx-nav';
+    nav.innerHTML = `<div class="pmx-in">
+      <button class="pmx-b on" data-n="home">${I.home}<span>Home</span></button>
+      <button class="pmx-b" data-n="cat">${I.cat}<span>Category</span></button>
+      <button class="pmx-b" data-n="cart">${I.cart}<span>Cart</span><i id="pmx-badge" class="pmx-badge">0</i></button>
+      <button class="pmx-b pmx-call" data-n="call">${I.call}<span>Call Waiter</span></button>
+    </div>`;
+    const catBox = document.createElement('div'); catBox.id = 'pmx-cat';
+    const callBox = document.createElement('div'); callBox.id = 'pmx-callbox';
+    const toastEl = document.createElement('div'); toastEl.id = 'pmx-toast';
+    document.body.append(nav, catBox, callBox, toastEl);
+    nav.style.display = 'flex';
+
+    const btn = k => nav.querySelector(`[data-n="${k}"]`);
+    let tt;
+    function toast(m) {
+      toastEl.textContent = m; toastEl.style.display = 'block';
+      clearTimeout(tt); tt = setTimeout(() => toastEl.style.display = 'none', 2600);
+    }
+    const activeCat = () => { const t = document.querySelector('#pm-tabs .pm-tab.on'); return t ? t.dataset.c : 'all'; };
+    const icon = c => {
+      c = String(c).toLowerCase();
+      if (c === 'all') return '🍽️';
+      if (/biri|rice|polao|tehari|kacchi/.test(c)) return '🍛';
+      if (/burger|pizza|fast/.test(c)) return '🍔';
+      if (/chin|noodle|thai/.test(c)) return '🥡';
+      if (/grill|kebab|bbq|tandoor/.test(c)) return '🍗';
+      if (/drink|juice|dessert|sweet|ice|coffee|tea/.test(c)) return '🥤';
+      if (/soup|salad/.test(c)) return '🥗';
+      return '🍴';
+    };
+
+    /* keep badge / visibility / active state in sync */
+    setInterval(() => {
+      const main = $('pm-main');
+      nav.style.display = (main && main.style.display === 'none') ? 'none' : 'flex';
+      const bd = $('pm-badge'), c = Number(bd && bd.textContent) || 0;
+      const nb = $('pmx-badge');
+      nb.textContent = c; nb.style.display = c ? 'flex' : 'none';
+      btn('cart').classList.toggle('has', c > 0);
+      const all = activeCat() === 'all';
+      btn('home').classList.toggle('on', all && window.scrollY < 150);
+      btn('cat').classList.toggle('on', !all);
+    }, 400);
+
+    /* ---- Home ---- */
+    function goHome() {
+      const all = document.querySelector('#pm-tabs .pm-tab[data-c="all"]');
+      if (all && activeCat() !== 'all') all.click();
+      const q = $('pm-q');
+      if (q && q.value) { q.value = ''; q.dispatchEvent(new Event('input', { bubbles: true })); }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    /* ---- Category sheet ---- */
+    function openCat() {
+      const tabs = [...document.querySelectorAll('#pm-tabs .pm-tab')];
+      const cur = activeCat();
+      catBox.innerHTML = `<div class="pmx-sheet">
+        <div class="pmx-h"><span>Category</span><button data-x aria-label="Close">×</button></div>
+        <div class="pmx-grid">${tabs.map(t => `<button class="pmx-chip ${t.dataset.c === cur ? 'on' : ''}" data-c="${esc(t.dataset.c)}"><span>${icon(t.dataset.c)}</span>${esc(t.textContent)}</button>`).join('')}</div>
+      </div>`;
+      catBox.style.display = 'flex';
+    }
+    catBox.addEventListener('click', e => {
+      if (e.target === catBox || e.target.closest('[data-x]')) { catBox.style.display = 'none'; return; }
+      const chip = e.target.closest('.pmx-chip');
+      if (!chip) return;
+      const c = chip.dataset.c;
+      const tab = [...document.querySelectorAll('#pm-tabs .pm-tab')].find(t => t.dataset.c === c);
+      if (tab) tab.click();
+      catBox.style.display = 'none';
+      setTimeout(() => { const g = $('pm-tabs'); if (g) g.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 60);
+    });
+
+    /* ---- Cart ---- */
+    function openCart() {
+      const c = Number($('pm-badge') && $('pm-badge').textContent) || 0;
+      if (!c) { toast('Apnar cart ekhono khali'); return; }
+      const b = document.querySelector('.pm2 .pm-basket');
+      if (b) b.click();
+    }
+
+    /* ---- Call Waiter ---- */
+    function openCall() {
+      callBox.innerHTML = `<div class="pmx-dlg">
+        <div class="pmx-em">🔔</div>
+        <h3>Waiter-ke dakben?</h3>
+        <p>${esc(table || 'Apnar table')} e waiter ekhuni ashbe</p>
+        <div class="pmx-row"><button class="pmx-no" data-x>Na</button><button class="pmx-yes" data-y>Ha, dakun</button></div>
+      </div>`;
+      callBox.style.display = 'flex';
+    }
+    async function sendCall(b) {
+      if (!table) { toast('Table number paoa jayni. QR abar scan korun.'); return; }
+      let last = 0;
+      try { last = Number(localStorage.getItem('pmx_call')) || 0; } catch (e) {}
+      if (Date.now() - last < 30000) { callBox.style.display = 'none'; toast('Waiter-ke already bola hoyeche, ektu opekkha korun'); return; }
+      b.disabled = true; b.textContent = 'Sending...';
+      const id = 'CALL-' + Date.now() + Math.floor(Math.random() * 90 + 10);
+      try {
+        if (typeof firebase === 'undefined') throw new Error('no firebase');
+        const app = firebase.apps.find(a => a.name === 'qrcust') || firebase.initializeApp(QR_FIREBASE, 'qrcust');
+        try { await app.auth().signInAnonymously(); } catch (e) {}
+        await Promise.race([
+          app.firestore().collection('calls').doc(id).set({ table, time: new Date().toISOString(), seq: Date.now() }),
+          new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 10000))
+        ]);
+        try { localStorage.setItem('pmx_call', String(Date.now())); } catch (e) {}
+        callBox.style.display = 'none';
+        toast('✅ Waiter-ke bola hoyeche, ekhuni ashchen');
+      } catch (e) {
+        console.error(e);
+        b.disabled = false; b.textContent = 'Ha, dakun';
+        toast('Pathano gelo na. Internet check korun ba haat tule dakun.');
+      }
+    }
+    callBox.addEventListener('click', e => {
+      if (e.target === callBox || e.target.closest('[data-x]')) { callBox.style.display = 'none'; return; }
+      const y = e.target.closest('[data-y]');
+      if (y) sendCall(y);
+    });
+
+    nav.addEventListener('click', e => {
+      const b = e.target.closest('[data-n]');
+      if (!b) return;
+      const k = b.dataset.n;
+      if (k === 'home') goHome();
+      else if (k === 'cat') openCat();
+      else if (k === 'cart') openCart();
+      else if (k === 'call') openCall();
+    });
+  }
+
+  /* =====================================================================
+     POS SIDE: customer "Call Waiter" ashle beep + panel
+     ===================================================================== */
+  function posCalls() {
+    const panel = document.createElement('div');
+    panel.id = 'pmx-calls'; panel.className = 'no-print';
+    document.body.appendChild(panel);
+    const calls = {};
+    let db = null;
+
+    function beep() {
+      try {
+        const c = new (window.AudioContext || window.webkitAudioContext)();
+        [0, 0.25, 0.5].forEach(t => {
+          const o = c.createOscillator(), g = c.createGain();
+          o.connect(g); g.connect(c.destination); o.frequency.value = 1040; g.gain.value = 0.15;
+          o.start(c.currentTime + t); o.stop(c.currentTime + t + 0.18);
+        });
+      } catch (e) {}
+    }
+    function render() {
+      const now = Date.now();
+      const rows = Object.entries(calls)
+        .filter(([, v]) => now - new Date(v.time).getTime() < 6 * 3600 * 1000)
+        .sort((a, b) => new Date(a[1].time) - new Date(b[1].time));
+      panel.style.display = rows.length ? 'flex' : 'none';
+      panel.innerHTML = rows.map(([id, v]) => {
+        const m = Math.max(0, Math.round((now - new Date(v.time).getTime()) / 60000));
+        return `<div class="pmx-ci"><div style="font-size:24px">🔔</div>
+          <div class="t"><b>${esc(v.table)} calls waiter</b><span>${m < 1 ? 'just now' : m + ' min ago'}</span></div>
+          <button data-id="${esc(id)}">Done</button></div>`;
+      }).join('');
+    }
+    panel.addEventListener('click', e => {
+      const b = e.target.closest('button[data-id]');
+      if (!b) return;
+      const id = b.dataset.id;
+      delete calls[id]; render();
+      if (db) db.collection('calls').doc(id).delete().catch(err => console.warn(err));
+    });
+    setInterval(render, 30000);
+
+    let tries = 0;
+    (function listen() {
+      if (typeof firebase === 'undefined' || !firebase.apps.length) { if (tries++ < 40) setTimeout(listen, 1500); return; }
+      db = firebase.firestore();
+      let first = true;
+      db.collection('calls').onSnapshot(s => {
+        s.docChanges().forEach(c => {
+          if (c.type === 'added') {
+            calls[c.doc.id] = c.doc.data();
+            if (!first && !c.doc.metadata.hasPendingWrites) {
+              beep();
+              showToast('🔔 ' + (c.doc.data().table || 'Table') + ' calls waiter', 'success');
+            }
+          } else if (c.type === 'removed') delete calls[c.doc.id];
+        });
+        first = false; render();
+      }, err => console.warn('calls listener:', err.message));
+    })();
+  }
+})();
+</script>
 </body>
 </html>
