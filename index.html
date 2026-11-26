@@ -3288,7 +3288,7 @@ async function tqCustomerMode(table) {
             <div class="text-sm text-slate-600 mt-1">Apnar order kitchen-e pouche gechhe.</div>
             <div class="mt-4 inline-block px-4 py-2 bg-slate-100 rounded-xl font-extrabold">${esc(id)} • ${esc(table)}</div>
             <div class="mt-3 text-sm text-slate-500">${t.q} items • ৳ ${fmt(t.t)}</div>
-            <button data-a="more" class="mt-6 w-full py-3 bg-rose-600 text-white rounded-2xl font-bold">Aro order korun</button>
+            <button data-a="more" class="mt-6 w-full py-3 bg-rose-600 text-white rounded-2xl font-bold">Place more orders</button>
           </div>`;
         Object.keys(cart).forEach(k => delete cart[k]);
       } catch (e) {
@@ -3745,7 +3745,7 @@ async function tqCustomerMode(table) {
             <div style="font-size:14px;color:#52625f;margin-top:4px">Apnar order kitchen-e pouche gechhe.</div>
             <div style="margin-top:16px;display:inline-block;padding:8px 16px;background:#eef5f3;border-radius:12px;font-weight:800">${esc(id)} • ${esc(table)}</div>
             <div style="margin-top:10px;font-size:13px;color:#6b7b78">${t.q} items • ৳ ${fmt(t.t)}</div>
-            <button class="pm-primary" data-a="more" style="margin-top:22px">Aro order korun</button>
+            <button class="pm-primary" data-a="more" style="margin-top:22px">Place more orders</button>
           </div>`;
         Object.keys(cart).forEach(k => delete cart[k]);
         st.name = '';
@@ -4146,7 +4146,7 @@ async function tqCustomerMode(table) {
             <div style="font-size:14px;color:#52625f;margin-top:4px">Apnar order kitchen-e pouche gechhe.</div>
             <div style="margin-top:16px;display:inline-block;padding:8px 16px;background:#eef5f3;border-radius:12px;font-weight:800">${esc(id)} • ${esc(table)}</div>
             <div style="margin-top:10px;font-size:13px;color:#6b7b78">${t.q} items • ৳ ${fmt(t.t)}</div>
-            <button class="pm-primary" data-a="more" style="margin-top:22px">Aro order korun</button>
+            <button class="pm-primary" data-a="more" style="margin-top:22px">Place more orders</button>
           </div>`;
         Object.keys(cart).forEach(k => delete cart[k]);
         st.name = '';
@@ -4414,7 +4414,7 @@ async function tqCustomerMode(table) {
     function openCall() {
       callBox.innerHTML = `<div class="pmx-dlg">
         <div class="pmx-em">🔔</div>
-        <h3>Waiter-ke dakben?</h3>
+        <h3>Will you call the waiter?</h3>
         <p>${esc(table || 'Apnar table')} e waiter ekhuni ashbe</p>
         <div class="pmx-row"><button class="pmx-no" data-x>Na</button><button class="pmx-yes" data-y>Ha, dakun</button></div>
       </div>`;
@@ -4716,17 +4716,17 @@ async function tqCustomerMode(table) {
     function openCall() {
       callBox.innerHTML = `<div class="pmu-dlg">
         <div class="pmu-em">🔔</div>
-        <h3>Waiter-ke dakben?</h3>
-        <p>${esc(table || 'Apnar table')} e waiter ekhuni ashbe</p>
-        <div class="pmu-row"><button class="pmu-no" data-x>Na</button><button class="pmu-yes" data-y>Ha, dakun</button></div>
+        <h3>Will you call the waiter?</h3>
+        <p>The waiter will be at ${esc(table || 'Apnar table')} shortly.</p>
+        <div class="pmu-row"><button class="pmu-no" data-x>No</button><button class="pmu-yes" data-y>Yes</button></div>
       </div>`;
       callBox.style.display = 'flex';
     }
     async function sendCall(b) {
-      if (!table) { toast('Table number paoa jayni. QR abar scan korun.'); return; }
+      if (!table) { toast('Table number not found. Please scan again.'); return; }
       let last = 0;
       try { last = Number(localStorage.getItem('pmx_call')) || 0; } catch (e) {}
-      if (Date.now() - last < 30000) { callBox.style.display = 'none'; toast('Waiter-ke already bola hoyeche, ektu opekkha korun'); return; }
+      if (Date.now() - last < 30000) { callBox.style.display = 'none'; toast(' The waiter has already been informed; please wait a moment.'); return; }
       b.disabled = true; b.textContent = 'Sending...';
       const id = 'CALL-' + Date.now() + Math.floor(Math.random() * 90 + 10);
       try {
@@ -4739,11 +4739,11 @@ async function tqCustomerMode(table) {
         ]);
         try { localStorage.setItem('pmx_call', String(Date.now())); } catch (e) {}
         callBox.style.display = 'none';
-        toast('✅ Waiter-ke bola hoyeche, ekhuni ashchen');
+        toast('✅ The waiter has been told; he’ll be right over.');
       } catch (e) {
         console.error(e);
         b.disabled = false; b.textContent = 'Ha, dakun';
-        toast('Pathano gelo na. Internet check korun ba haat tule dakun.');
+        toast('Could not be sent. <br> Please check your internet connection.');
       }
     }
     callBox.addEventListener('click', e => {
