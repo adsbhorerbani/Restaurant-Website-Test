@@ -4523,5 +4523,281 @@ async function tqCustomerMode(table) {
   }
 })();
 </script>
+<!-- ===================== CUSTOMER MENU: BOTTOM BAR FIX + FRIENDLY ADDON =====================
+     Paste this whole block just BEFORE </body> (after the BOTTOM NAV + CALL WAITER ADDON).
+     Nothing else in your file needs to change.
+=========================================================================================== -->
+<style>
+  /* ---------- Bottom bar (inside #customer-menu, so it is never hidden) ---------- */
+  #pmu-nav, #pmu-cat, #pmu-callbox, #pmu-toast { font-family:'Urbanist','Inter',system-ui,sans-serif; }
+  #pmu-nav { position:fixed; left:0; right:0; bottom:0; z-index:25; display:flex; justify-content:center; padding:0 10px calc(10px + env(safe-area-inset-bottom)); pointer-events:none; }
+  #pmu-nav .pmu-in { pointer-events:auto; width:100%; max-width:560px; background:rgba(255,255,255,.97); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); border-radius:26px; box-shadow:0 10px 34px rgba(15,60,55,.28); display:grid; grid-template-columns:repeat(4,1fr); gap:2px; padding:8px 6px; }
+  .pmu-b { border:0; background:none; display:flex; flex-direction:column; align-items:center; gap:3px; padding:7px 2px; border-radius:18px; font-family:inherit; font-size:11.5px; font-weight:700; color:#5d6f6c; cursor:pointer; position:relative; transition:.15s; -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
+  .pmu-b svg { width:23px; height:23px; }
+  .pmu-b:active { transform:scale(.93); }
+  .pmu-b.on { color:#1f7f75; background:#e6f4f1; }
+  .pmu-b.has { color:#1f7f75; }
+  .pmu-b.call { color:#d9482f; }
+  .pmu-b.call:active { background:#fdeceb; }
+  .pmu-badge { position:absolute; top:1px; left:calc(50% + 6px); background:#e5533d; color:#fff; font-size:10px; font-weight:800; font-style:normal; min-width:17px; height:17px; border-radius:9px; display:none; align-items:center; justify-content:center; padding:0 4px; }
+
+  /* "View Order" bar sits just above the bottom bar */
+  .pm2 .pm-bar { bottom:calc(88px + env(safe-area-inset-bottom)) !important; }
+  .pm2 .pm-body { padding-bottom:210px !important; }
+
+  /* ---------- Category sheet + Call dialog ---------- */
+  #pmu-cat, #pmu-callbox { position:fixed; inset:0; z-index:35; background:rgba(10,30,28,.55); display:none; justify-content:center; }
+  #pmu-cat { align-items:flex-end; }
+  #pmu-callbox { align-items:center; padding:20px; }
+  @keyframes pmuUp { from { transform:translateY(40px); opacity:0; } to { transform:none; opacity:1; } }
+  .pmu-sheet { background:#fff; width:100%; max-width:520px; border-radius:28px 28px 0 0; padding:18px 18px 26px; animation:pmuUp .22s ease; max-height:80vh; overflow-y:auto; }
+  .pmu-h { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; font-size:19px; font-weight:800; }
+  .pmu-h button { background:none; border:0; font-size:30px; color:#8a9a97; cursor:pointer; line-height:1; }
+  .pmu-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .pmu-chip { display:flex; align-items:center; gap:10px; padding:14px; border-radius:16px; border:1px solid #dbe9e6; background:#f4faf9; font-family:inherit; font-size:14px; font-weight:700; color:#18302c; cursor:pointer; text-align:left; touch-action:manipulation; }
+  .pmu-chip span { font-size:22px; }
+  .pmu-chip.on { background:#1f7f75; color:#fff; border-color:#1f7f75; }
+  .pmu-dlg { background:#fff; width:100%; max-width:340px; border-radius:26px; padding:26px 22px 22px; text-align:center; animation:pmuUp .22s ease; }
+  .pmu-em { font-size:46px; }
+  .pmu-dlg h3 { margin:8px 0 4px; font-size:20px; font-weight:800; }
+  .pmu-dlg p { margin:0 0 18px; color:#5d6f6c; font-size:13.5px; font-weight:600; }
+  .pmu-row { display:flex; gap:10px; }
+  .pmu-row button { flex:1; padding:13px; border-radius:14px; border:0; font-family:inherit; font-size:14px; font-weight:800; cursor:pointer; touch-action:manipulation; }
+  .pmu-no { background:#eef2f1; color:#31413e; }
+  .pmu-yes { background:#e5533d; color:#fff; }
+  .pmu-yes:disabled { opacity:.6; }
+  #pmu-toast { position:fixed; left:50%; bottom:calc(150px + env(safe-area-inset-bottom)); transform:translateX(-50%); background:#12201d; color:#fff; padding:10px 18px; border-radius:14px; font-size:13px; font-weight:700; z-index:40; display:none; max-width:88vw; text-align:center; box-shadow:0 8px 22px rgba(0,0,0,.3); }
+
+  /* ---------- Sticky category tabs ---------- */
+  .pm2 .pm-tabs { position:sticky; top:0; z-index:5; margin:0 -14px 12px; padding:10px 16px 12px; background:rgba(190,226,219,.93); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); }
+  @media (min-width:640px)  { .pm2 .pm-tabs { margin:0 -24px 12px; padding:10px 24px 12px; } }
+  @media (min-width:768px)  { .pm2 .pm-tabs { position:static; margin:0 0 6px; padding:2px 2px 18px; background:transparent; backdrop-filter:none; -webkit-backdrop-filter:none; } }
+  #pm-grid { scroll-margin-top:72px; }
+
+  /* ---------- Quick add / stepper on cards ---------- */
+  .pm2 .pm-prow { flex-wrap:wrap; row-gap:8px; }
+  .pmu-q { display:flex; align-items:center; gap:5px; margin-left:auto; flex-shrink:0; }
+  .pmu-q button { width:30px; height:30px; border-radius:10px; border:0; background:#e8f1ef; color:#14201e; font-size:20px; font-weight:800; line-height:1; cursor:pointer; font-family:inherit; touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
+  .pmu-q button.p { background:#1f7f75; color:#fff; }
+  .pmu-q button.pmu-add { width:auto; padding:0 14px; height:30px; background:#1f7f75; color:#fff; font-size:13px; border-radius:999px; }
+  .pmu-q button:active { transform:scale(.92); }
+  .pmu-q b { min-width:16px; text-align:center; font-size:14px; }
+
+  /* ---------- Friendlier tap targets ---------- */
+  .pm2 .pm-add, .pm2 .pm-more, .pm2 .pm-tab, .pm2 .pm-b, .pm2 .pm-primary, .pm2 .pm-basket { touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
+  .pm2 .pm-b { width:38px; height:38px; }
+  .pm2 .pm-add { padding:10px 20px; }
+</style>
+
+<script>
+(function () {
+  if (typeof TQ_TABLE === 'undefined' || TQ_TABLE === null) return;   // customer QR page only
+
+  const QR_FIREBASE = {
+    apiKey: "AIzaSyDVysBJIQTxXDfs533SkAQvQ0HMsty2OiU",
+    authDomain: "restaurant-website-test.firebaseapp.com",
+    projectId: "restaurant-website-test",
+    storageBucket: "restaurant-website-test.firebasestorage.app",
+    messagingSenderId: "837789642324",
+    appId: "1:837789642324:web:d9a32bfb793f6427f4c7c1"
+  };
+  const $ = id => document.getElementById(id);
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const table = String(TQ_TABLE || '').trim().slice(0, 30);
+
+  async function init() {
+    let n = 0;
+    while (!document.querySelector('.pm2 #pm-grid') && n++ < 400) await sleep(100);
+    const root = document.querySelector('.pm2');
+    const grid = $('pm-grid');
+    if (!root || !grid) return;
+
+    /* ---------- icons ---------- */
+    const I = {
+      home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg>',
+      cat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>',
+      cart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h18l-1.8 10.2a1.5 1.5 0 0 1-1.5 1.3H6.3a1.5 1.5 0 0 1-1.5-1.3z"/><path d="M8 9l2.5-5M16 9l-2.5-5"/></svg>',
+      call: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 17V11a6 6 0 0 1 12 0v6"/><path d="M4 17h16"/><path d="M10 20a2 2 0 0 0 4 0"/><path d="M12 3V2"/></svg>'
+    };
+
+    /* ---------- build UI INSIDE #customer-menu (this is the fix) ---------- */
+    const nav = document.createElement('nav');
+    nav.id = 'pmu-nav';
+    nav.innerHTML = `<div class="pmu-in">
+      <button class="pmu-b on" data-n="home">${I.home}<span>Home</span></button>
+      <button class="pmu-b" data-n="cat">${I.cat}<span>Category</span></button>
+      <button class="pmu-b" data-n="cart">${I.cart}<span>Cart</span><i id="pmu-badge" class="pmu-badge">0</i></button>
+      <button class="pmu-b call" data-n="call">${I.call}<span>Call Waiter</span></button>
+    </div>`;
+    const catBox = document.createElement('div');  catBox.id = 'pmu-cat';
+    const callBox = document.createElement('div'); callBox.id = 'pmu-callbox';
+    const toastEl = document.createElement('div'); toastEl.id = 'pmu-toast';
+    root.append(nav, catBox, callBox, toastEl);
+
+    const btn = k => nav.querySelector(`[data-n="${k}"]`);
+    let tt;
+    function toast(m) {
+      toastEl.textContent = m; toastEl.style.display = 'block';
+      clearTimeout(tt); tt = setTimeout(() => toastEl.style.display = 'none', 2200);
+    }
+    const activeCat = () => { const t = document.querySelector('#pm-tabs .pm-tab.on'); return t ? t.dataset.c : 'all'; };
+    const icon = c => {
+      c = String(c).toLowerCase();
+      if (c === 'all') return '🍽️';
+      if (/biri|rice|polao|tehari|kacchi/.test(c)) return '🍛';
+      if (/burger|pizza|fast/.test(c)) return '🍔';
+      if (/chin|noodle|thai/.test(c)) return '🥡';
+      if (/grill|kebab|bbq|tandoor/.test(c)) return '🍗';
+      if (/drink|juice|dessert|sweet|ice|coffee|tea/.test(c)) return '🥤';
+      if (/soup|salad/.test(c)) return '🥗';
+      return '🍴';
+    };
+    // order-placed screen theke menu-te phire jawa
+    function ensureMenu() {
+      const main = $('pm-main');
+      if (main && main.style.display === 'none') {
+        const more = document.querySelector('#pm-done [data-a="more"]');
+        if (more) more.click();
+      }
+    }
+
+    /* ---------- badge / active state ---------- */
+    setInterval(() => {
+      const bd = $('pm-badge'), c = Number(bd && bd.textContent) || 0;
+      const nb = $('pmu-badge');
+      nb.textContent = c; nb.style.display = c ? 'flex' : 'none';
+      btn('cart').classList.toggle('has', c > 0);
+      const all = activeCat() === 'all';
+      btn('home').classList.toggle('on', all && window.scrollY < 150);
+      btn('cat').classList.toggle('on', !all);
+    }, 300);
+
+    /* ---------- Home ---------- */
+    function goHome() {
+      ensureMenu();
+      const all = document.querySelector('#pm-tabs .pm-tab[data-c="all"]');
+      if (all && activeCat() !== 'all') all.click();
+      const q = $('pm-q');
+      if (q && q.value) { q.value = ''; q.dispatchEvent(new Event('input', { bubbles: true })); }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    /* ---------- Category sheet ---------- */
+    function openCat() {
+      ensureMenu();
+      const tabs = [...document.querySelectorAll('#pm-tabs .pm-tab')];
+      const cur = activeCat();
+      catBox.innerHTML = `<div class="pmu-sheet">
+        <div class="pmu-h"><span>Category</span><button data-x aria-label="Close">×</button></div>
+        <div class="pmu-grid">${tabs.map(t => `<button class="pmu-chip ${t.dataset.c === cur ? 'on' : ''}" data-c="${esc(t.dataset.c)}"><span>${icon(t.dataset.c)}</span>${esc(t.textContent)}</button>`).join('')}</div>
+      </div>`;
+      catBox.style.display = 'flex';
+    }
+    catBox.addEventListener('click', e => {
+      if (e.target === catBox || e.target.closest('[data-x]')) { catBox.style.display = 'none'; return; }
+      const chip = e.target.closest('.pmu-chip');
+      if (!chip) return;
+      const tab = [...document.querySelectorAll('#pm-tabs .pm-tab')].find(t => t.dataset.c === chip.dataset.c);
+      if (tab) tab.click();
+      catBox.style.display = 'none';
+      setTimeout(() => grid.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+    });
+
+    /* ---------- Cart ---------- */
+    function openCart() {
+      const c = Number($('pm-badge') && $('pm-badge').textContent) || 0;
+      if (!c) { toast('Apnar cart ekhono khali'); return; }
+      const b = document.querySelector('.pm2 .pm-basket');
+      if (b) b.click();
+    }
+
+    /* ---------- Call Waiter ---------- */
+    function openCall() {
+      callBox.innerHTML = `<div class="pmu-dlg">
+        <div class="pmu-em">🔔</div>
+        <h3>Waiter-ke dakben?</h3>
+        <p>${esc(table || 'Apnar table')} e waiter ekhuni ashbe</p>
+        <div class="pmu-row"><button class="pmu-no" data-x>Na</button><button class="pmu-yes" data-y>Ha, dakun</button></div>
+      </div>`;
+      callBox.style.display = 'flex';
+    }
+    async function sendCall(b) {
+      if (!table) { toast('Table number paoa jayni. QR abar scan korun.'); return; }
+      let last = 0;
+      try { last = Number(localStorage.getItem('pmx_call')) || 0; } catch (e) {}
+      if (Date.now() - last < 30000) { callBox.style.display = 'none'; toast('Waiter-ke already bola hoyeche, ektu opekkha korun'); return; }
+      b.disabled = true; b.textContent = 'Sending...';
+      const id = 'CALL-' + Date.now() + Math.floor(Math.random() * 90 + 10);
+      try {
+        if (typeof firebase === 'undefined') throw new Error('no firebase');
+        const app = firebase.apps.find(a => a.name === 'qrcust') || firebase.initializeApp(QR_FIREBASE, 'qrcust');
+        try { await app.auth().signInAnonymously(); } catch (e) {}
+        await Promise.race([
+          app.firestore().collection('calls').doc(id).set({ table, time: new Date().toISOString(), seq: Date.now() }),
+          new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 10000))
+        ]);
+        try { localStorage.setItem('pmx_call', String(Date.now())); } catch (e) {}
+        callBox.style.display = 'none';
+        toast('✅ Waiter-ke bola hoyeche, ekhuni ashchen');
+      } catch (e) {
+        console.error(e);
+        b.disabled = false; b.textContent = 'Ha, dakun';
+        toast('Pathano gelo na. Internet check korun ba haat tule dakun.');
+      }
+    }
+    callBox.addEventListener('click', e => {
+      if (e.target === callBox || e.target.closest('[data-x]')) { callBox.style.display = 'none'; return; }
+      const y = e.target.closest('[data-y]');
+      if (y) sendCall(y);
+    });
+
+    nav.addEventListener('click', e => {
+      const b = e.target.closest('[data-n]');
+      if (!b) return;
+      const k = b.dataset.n;
+      if (k === 'home') goHome();
+      else if (k === 'cat') openCat();
+      else if (k === 'cart') openCart();
+      else if (k === 'call') openCall();
+    });
+
+    /* ---------- Quick "+ Add" / stepper on single-portion dish cards ---------- */
+    function decorate() {
+      grid.querySelectorAll('.pm-card').forEach(card => {
+        const row = card.querySelector('.pm-prow');
+        if (!row || row.querySelector('.pm-more') || row.querySelector('.pmu-q')) return;
+        const qEl = card.querySelector('.pm-qty');
+        const qty = qEl ? (Number(qEl.textContent) || 0) : 0;
+        const w = document.createElement('div');
+        w.className = 'pmu-q';
+        w.innerHTML = qty
+          ? `<button data-u="dec" aria-label="Remove one">−</button><b>${qty}</b><button class="p" data-u="inc" aria-label="Add one">+</button>`
+          : `<button class="pmu-add" data-u="inc" aria-label="Add to order">+ Add</button>`;
+        row.appendChild(w);
+      });
+    }
+    new MutationObserver(decorate).observe(grid, { childList: true });
+    decorate();
+
+    // card-er + / - : ager menu-r detail sheet-er Add/- button-ke shorashori click kore
+    grid.addEventListener('click', e => {
+      const b = e.target.closest('[data-u]');
+      if (!b) return;
+      e.stopPropagation(); e.preventDefault();
+      const act = b.dataset.u;
+      const card = b.closest('.pm-card');
+      if (!card) return;
+      card.click();                                   // detail sheet khole
+      const target = document.querySelector('#pm-detail [data-a="' + act + '"]');
+      if (target) target.click();                     // inc / dec
+      const close = document.querySelector('#pm-detail [data-a="closeD"]');
+      if (close) close.click();                       // sheet bondho
+      if (act === 'inc') toast('Added to your order ✓');
+    });
+  }
+
+  init();
+})();
+</script>
 </body>
 </html>
