@@ -4901,5 +4901,135 @@ async function tqCustomerMode(table) {
   init();
 })();
 </script>
+<!-- ===================== QR MENU LOADING SCREEN ADDON =====================
+     Paste this whole block just BEFORE </body> (after the FOOD CATEGORY CARDS addon).
+     Nothing else in your file needs to change.
+     Customer QR scan korar por menu puro ready na howa porjonto animated loading dekhabe.
+======================================================================== -->
+<style>
+  #pml { position:fixed; inset:0; z-index:2147483000; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:22px; padding:24px;
+    background:linear-gradient(180deg,#c3e6df 0%,#a9d3cc 100%); font-family:'Urbanist','Inter',system-ui,sans-serif; color:#10211e;
+    transition:opacity .45s ease, transform .45s ease; }
+  #pml.pml-out { opacity:0; transform:scale(1.03); pointer-events:none; }
+  body.pml-lock { overflow:hidden !important; }
+
+  .pml-badge { background:#fff; color:#1b6b62; padding:6px 16px; border-radius:999px; font-size:13px; font-weight:800; box-shadow:0 4px 12px rgba(20,60,55,.12); }
+
+  .pml-orb { position:relative; width:150px; height:150px; display:flex; align-items:center; justify-content:center; }
+  .pml-orb::before { content:""; position:absolute; inset:0; border-radius:50%; background:#fff; box-shadow:0 14px 34px rgba(15,60,55,.22); }
+  .pml-ring { position:absolute; inset:-9px; border-radius:50%; border:4px solid rgba(31,127,117,.18); border-top-color:#1f7f75; border-right-color:#27a394; animation:pmlSpin 1.1s linear infinite; }
+  .pml-ring2 { position:absolute; inset:-20px; border-radius:50%; border:2px dashed rgba(31,127,117,.35); animation:pmlSpin 7s linear infinite reverse; }
+  .pml-emo { position:relative; font-size:66px; line-height:1; animation:pmlPop .75s ease both; }
+  .pml-pulse { position:absolute; inset:0; border-radius:50%; border:3px solid #1f7f75; opacity:0; animation:pmlPulse 1.8s ease-out infinite; }
+  .pml-pulse.b { animation-delay:.9s; }
+
+  .pml-txt { font-size:22px; font-weight:800; letter-spacing:-.2px; text-align:center; }
+  .pml-dots span { display:inline-block; animation:pmlDot 1.2s infinite both; }
+  .pml-dots span:nth-child(2) { animation-delay:.2s; }
+  .pml-dots span:nth-child(3) { animation-delay:.4s; }
+  .pml-sub { margin-top:6px; font-size:13px; font-weight:600; color:#41625d; text-align:center; }
+
+  .pml-bar { width:min(260px,70vw); height:8px; border-radius:99px; background:rgba(255,255,255,.65); overflow:hidden; box-shadow:inset 0 1px 3px rgba(0,0,0,.08); }
+  .pml-fill { height:100%; width:6%; border-radius:99px; background:linear-gradient(90deg,#1f7f75,#3fc2b0,#1f7f75); background-size:200% 100%; animation:pmlShine 1.2s linear infinite; transition:width .5s ease; }
+
+  .pml-float { position:absolute; font-size:26px; opacity:.55; animation:pmlFloat 6s ease-in-out infinite; pointer-events:none; }
+
+  @keyframes pmlSpin { to { transform:rotate(360deg); } }
+  @keyframes pmlPop { 0% { transform:scale(.3) rotate(-20deg); opacity:0; } 60% { transform:scale(1.15) rotate(6deg); opacity:1; } 100% { transform:scale(1) rotate(0); } }
+  @keyframes pmlPulse { 0% { transform:scale(1); opacity:.55; } 100% { transform:scale(1.7); opacity:0; } }
+  @keyframes pmlDot { 0%,80%,100% { opacity:.2; transform:translateY(0); } 40% { opacity:1; transform:translateY(-4px); } }
+  @keyframes pmlShine { to { background-position:-200% 0; } }
+  @keyframes pmlFloat { 0%,100% { transform:translateY(0) rotate(-8deg); } 50% { transform:translateY(-18px) rotate(8deg); } }
+</style>
+
+<script>
+(function () {
+  if (typeof TQ_TABLE === 'undefined' || TQ_TABLE === null) return;   // customer QR page only
+
+  const table = String(TQ_TABLE || '').trim().slice(0, 30);
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const t0 = Date.now();
+  const FOODS = ['🍛', '🍔', '🍕', '🍗', '🥡', '🥤', '🍰'];
+
+  /* ---------- overlay ---------- */
+  const o = document.createElement('div');
+  o.id = 'pml';
+  const floats = [['🍔', '8%', '14%', '0s'], ['🍕', '84%', '20%', '1s'], ['🥤', '12%', '78%', '2s'], ['🍗', '86%', '74%', '3s'], ['🍰', '48%', '6%', '1.5s']]
+    .map(f => `<span class="pml-float" style="left:${f[1]};top:${f[2]};animation-delay:${f[3]}">${f[0]}</span>`).join('');
+  o.innerHTML = `
+    ${floats}
+    ${table ? `<div class="pml-badge">${table.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))}</div>` : ''}
+    <div class="pml-orb">
+      <span class="pml-pulse"></span><span class="pml-pulse b"></span>
+      <span class="pml-ring2"></span><span class="pml-ring"></span>
+      <span class="pml-emo" id="pml-emo">${FOODS[0]}</span>
+    </div>
+    <div>
+      <div class="pml-txt">Menu load hocche<span class="pml-dots"><span>.</span><span>.</span><span>.</span></span></div>
+      <div class="pml-sub">Please wait, your delicious menu is getting ready</div>
+    </div>
+    <div class="pml-bar"><div class="pml-fill" id="pml-fill"></div></div>`;
+  (document.body || document.documentElement).appendChild(o);
+  document.body.classList.add('pml-lock');
+
+  /* ---------- animation: emoji cycle + fake progress ---------- */
+  let fi = 0;
+  const emoTimer = setInterval(() => {
+    const e = document.getElementById('pml-emo');
+    if (!e) return;
+    fi = (fi + 1) % FOODS.length;
+    e.style.animation = 'none'; void e.offsetWidth;
+    e.textContent = FOODS[fi];
+    e.style.animation = 'pmlPop .75s ease both';
+  }, 900);
+
+  let pct = 6;
+  const fill = document.getElementById('pml-fill');
+  const progTimer = setInterval(() => {
+    pct += (92 - pct) * 0.06;                    // dhire dhire 92% er dike jay
+    fill.style.width = pct.toFixed(1) + '%';
+  }, 250);
+
+  /* ---------- ready check ---------- */
+  const gridReady = () => {
+    const g = document.querySelector('.pm2 #pm-grid');
+    return !!g && (g.querySelector('.pm-card') || g.querySelector('.pm-empty'));
+  };
+  const allReady = () => !!document.getElementById('pmu-nav') && !!document.getElementById('pmc-head');
+
+  function imagesReady() {
+    const imgs = [...document.querySelectorAll('#pm-grid img')].slice(0, 8);
+    return Promise.all(imgs.map(i => (i.complete ? 1 : new Promise(r => { i.onload = i.onerror = r; }))));
+  }
+
+  function finish() {
+    clearInterval(emoTimer); clearInterval(progTimer);
+    fill.style.width = '100%';
+    setTimeout(() => {
+      o.classList.add('pml-out');
+      document.body.classList.remove('pml-lock');
+      setTimeout(() => o.remove(), 500);
+    }, 250);
+  }
+
+  (async function wait() {
+    const HARD = 25000;                          // fail-safe: kono karone atke gele 25s por bondho
+    let gridAt = 0;
+    while (Date.now() - t0 < HARD) {
+      if (gridReady()) {
+        if (!gridAt) gridAt = Date.now();
+        if (allReady() || Date.now() - gridAt > 3000) break;
+      }
+      await sleep(100);
+    }
+    if (gridReady()) {
+      await Promise.race([imagesReady(), sleep(2500)]);   // prothom dish gular photo load howar jonno
+    }
+    const left = 900 - (Date.now() - t0);                 // minimum 0.9s dekhabe, flash na hoy
+    if (left > 0) await sleep(left);
+    finish();
+  })();
+})();
+</script>
 </body>
 </html>
