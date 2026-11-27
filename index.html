@@ -2814,7 +2814,7 @@ async function tqCustomerMode(table) {
             </div>
           </div>`).join('')}
         </div>
-      </div>`).join('') : '<div class="py-12 text-center text-slate-400 text-sm">Kono khabar paoa jayni</div>';
+      </div>`).join('') : '<div class="py-12 text-center text-slate-400 text-sm">No food found.</div>';
   };
   document.getElementById('cm-q').addEventListener('input', e => { q = e.target.value.toLowerCase().trim(); draw(); });
   document.getElementById('cm-chips').addEventListener('click', e => {
@@ -3209,7 +3209,7 @@ async function tqCustomerMode(table) {
               </div>
             </div>`).join('')}
           </div>
-        </div>`).join('') : '<div class="py-12 text-center text-slate-400 text-sm">Kono khabar paoa jayni</div>';
+        </div>`).join('') : '<div class="py-12 text-center text-slate-400 text-sm">No food found.</div>';
     }
 
     function updateBar() {
@@ -3637,7 +3637,7 @@ async function tqCustomerMode(table) {
             </div>
           </button>`);
       });
-      $('pm-grid').innerHTML = cards.length ? cards.join('') : '<div class="pm-empty">Kono khabar paoa jayni</div>';
+      $('pm-grid').innerHTML = cards.length ? cards.join('') : '<div class="pm-empty">No food found.</div>';
     }
 
     function drawBar() {
@@ -4038,7 +4038,7 @@ async function tqCustomerMode(table) {
             </div>
           </div>`);
       });
-      $('pm-grid').innerHTML = cards.length ? cards.join('') : '<div class="pm-empty">Kono khabar paoa jayni</div>';
+      $('pm-grid').innerHTML = cards.length ? cards.join('') : '<div class="pm-empty">No food found.</div>';
     }
 
     function drawBar() {
