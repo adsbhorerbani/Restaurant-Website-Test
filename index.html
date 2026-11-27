@@ -5,6 +5,40 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DineFlow - Restaurant POS, Table Management & Cloud Reports</title>
   <script>
+/* Early loading screen: heavy CDN script load howar age-i animation dekhabe (customer QR page only) */
+(function () {
+  var t = new URLSearchParams(location.search).get('table');
+  if (t === null) return;
+  var safe = String(t).slice(0, 30).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; });
+  var css = '#pml{position:fixed;inset:0;z-index:2147483000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:24px;background:linear-gradient(180deg,#c3e6df 0%,#a9d3cc 100%);font-family:system-ui,-apple-system,sans-serif;color:#10211e;transition:opacity .45s ease,transform .45s ease}'
+  + '#pml.pml-out{opacity:0;transform:scale(1.03);pointer-events:none}'
+  + '.pml-badge{background:#fff;color:#1b6b62;padding:6px 16px;border-radius:999px;font-size:13px;font-weight:800;box-shadow:0 4px 12px rgba(20,60,55,.12)}'
+  + '.pml-orb{position:relative;width:150px;height:150px;display:flex;align-items:center;justify-content:center}'
+  + '.pml-orb:before{content:"";position:absolute;inset:0;border-radius:50%;background:#fff;box-shadow:0 14px 34px rgba(15,60,55,.22)}'
+  + '.pml-ring{position:absolute;inset:-9px;border-radius:50%;border:4px solid rgba(31,127,117,.18);border-top-color:#1f7f75;border-right-color:#27a394;animation:pmlSpin 1.1s linear infinite}'
+  + '.pml-ring2{position:absolute;inset:-20px;border-radius:50%;border:2px dashed rgba(31,127,117,.35);animation:pmlSpin 7s linear infinite reverse}'
+  + '.pml-emo{position:relative;font-size:66px;line-height:1;animation:pmlPop .75s ease both}'
+  + '.pml-pulse{position:absolute;inset:0;border-radius:50%;border:3px solid #1f7f75;opacity:0;animation:pmlPulse 1.8s ease-out infinite}.pml-pulse.b{animation-delay:.9s}'
+  + '.pml-txt{font-size:22px;font-weight:800;text-align:center}.pml-dots span{display:inline-block;animation:pmlDot 1.2s infinite both}.pml-dots span:nth-child(2){animation-delay:.2s}.pml-dots span:nth-child(3){animation-delay:.4s}'
+  + '.pml-sub{margin-top:6px;font-size:13px;font-weight:600;color:#41625d;text-align:center}'
+  + '.pml-bar{width:min(260px,70vw);height:8px;border-radius:99px;background:rgba(255,255,255,.65);overflow:hidden}'
+  + '.pml-fill{height:100%;width:6%;border-radius:99px;background:linear-gradient(90deg,#1f7f75,#3fc2b0,#1f7f75);background-size:200% 100%;animation:pmlShine 1.2s linear infinite;transition:width .5s ease}'
+  + '.pml-float{position:absolute;font-size:26px;opacity:.55;animation:pmlFloat 6s ease-in-out infinite;pointer-events:none}'
+  + '@keyframes pmlSpin{to{transform:rotate(360deg)}}@keyframes pmlPop{0%{transform:scale(.3) rotate(-20deg);opacity:0}60%{transform:scale(1.15) rotate(6deg);opacity:1}100%{transform:scale(1) rotate(0)}}'
+  + '@keyframes pmlPulse{0%{transform:scale(1);opacity:.55}100%{transform:scale(1.7);opacity:0}}@keyframes pmlDot{0%,80%,100%{opacity:.2;transform:translateY(0)}40%{opacity:1;transform:translateY(-4px)}}'
+  + '@keyframes pmlShine{to{background-position:-200% 0}}@keyframes pmlFloat{0%,100%{transform:translateY(0) rotate(-8deg)}50%{transform:translateY(-18px) rotate(8deg)}}';
+  var fl = [['🍔','8%','14%','0s'],['🍕','84%','20%','1s'],['🥤','12%','78%','2s'],['🍗','86%','74%','3s'],['🍰','48%','6%','1.5s']]
+    .map(function (f) { return '<span class="pml-float" style="left:' + f[1] + ';top:' + f[2] + ';animation-delay:' + f[3] + '">' + f[0] + '</span>'; }).join('');
+  document.write('<style id="pml-early-css">' + css + '</style>'
+    + '<div id="pml">' + fl + (safe ? '<div class="pml-badge">' + safe + '</div>' : '')
+    + '<div class="pml-orb"><span class="pml-pulse"></span><span class="pml-pulse b"></span><span class="pml-ring2"></span><span class="pml-ring"></span><span class="pml-emo" id="pml-emo">🍛</span></div>'
+    + '<div><div class="pml-txt">Menu load hocche<span class="pml-dots"><span>.</span><span>.</span><span>.</span></span></div><div class="pml-sub">Please wait, your delicious menu is getting ready</div></div>'
+    + '<div class="pml-bar"><div class="pml-fill" id="pml-fill" style="width:35%"></div></div></div>');
+  // fail-safe: kono karone onek deri hole 30s por bondho
+  setTimeout(function () { var e = document.getElementById('pml'); if (e) e.remove(); }, 30000);
+})();
+</script>
+  <script>
 /* menu.json 404 console error fix (menu live Firebase theke ashe) */
 (function () {
   var f = window.fetch;
@@ -2760,7 +2794,7 @@ function renderTablesView() {
 /* ---------- Customer-er phone-e jei page dekhabe (?table=... thakle) ---------- */
 async function tqCustomerMode(table) {
   const st = document.createElement('style');
-  st.textContent = 'body.cust-mode>*:not(#customer-menu){display:none!important}body.cust-mode{display:block!important;overflow:auto!important}';
+  st.textContent = 'body.cust-mode>*:not(#customer-menu):not(#pml){display:none!important}body.cust-mode{display:block!important;overflow:auto!important}';
   document.head.appendChild(st);
   document.body.classList.add('cust-mode');
   const root = document.createElement('div');
@@ -4593,6 +4627,7 @@ async function tqCustomerMode(table) {
 <script>
 (function () {
   if (typeof TQ_TABLE === 'undefined' || TQ_TABLE === null) return;   // customer QR page only
+  const _early = document.getElementById('pml'); if (_early) _early.remove();   // early loader-er jaygay full-progress loader boshbe
 
   const QR_FIREBASE = {
     apiKey: "AIzaSyDVysBJIQTxXDfs533SkAQvQ0HMsty2OiU",
