@@ -1301,33 +1301,29 @@
       }
     });
 
-function handleLoginSubmit(e) {
-  e.preventDefault();
-  const email = document.getElementById('login-email').value.trim();
-  const pass = document.getElementById('login-password').value;
-
-  // First run: কোনো admin সেট না থাকলে, এই লগইনই admin হবে
-  if (!shopConfig.adminEmail || !shopConfig.adminPass) {
-    if (pass.length < 8) { showToast('Password কমপক্ষে 8 character দিতে হবে', 'error'); return; }
-    shopConfig.adminEmail = email;
-    shopConfig.adminPass = pass;
-    saveLS(K_CFG, shopConfig);
-    showToast('Admin account তৈরি হয়েছে', 'success');
-  } else if (email.toLowerCase() !== String(shopConfig.adminEmail).toLowerCase() || pass !== shopConfig.adminPass) {
-    showToast('Wrong email or password!', 'error');
-    return;
-  }
-  sessionStorage.setItem('restpos_auth', '1');
-  sessionStorage.setItem('restpos_user', email);
-  document.getElementById('sidebar-user-email').innerText = email;
-  document.getElementById('login-screen').classList.add('hidden');
-  showToast('Welcome back to ' + shopConfig.name, 'success');
-}
+    async function handleLoginSubmit(e) {
+      e.preventDefault();
+      const email = document.getElementById('login-email').value.trim();
+      const pass = document.getElementById('login-password').value;
+      if (!window.fbStaffLogin) { showToast('Firebase load hoyni, internet check korun', 'error'); return; }
+      const btn = e.target.querySelector('button[type=submit]');
+      if (btn) btn.disabled = true;
+      try {
+        await window.fbStaffLogin(email, pass);
+        sessionStorage.setItem('restpos_auth', '1');
+        sessionStorage.setItem('restpos_user', email);
+        showToast('Welcome back to ' + shopConfig.name, 'success');
+      } catch (err) {
+        showToast('Wrong email or password!', 'error');
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
 
     function handleLogout() {
       if (confirm('Log out of POS?')) {
         sessionStorage.removeItem('restpos_auth');
-        document.getElementById('login-screen').classList.remove('hidden');
+        (window.fbStaffLogout ? window.fbStaffLogout() : Promise.resolve()).finally(() => location.reload());
       }
     }
 
@@ -2899,6 +2895,25 @@ async function tqCustomerMode(table) {
   }
 
   firebase.initializeApp(FIREBASE_CONFIG);
+    /* ---------- Staff login (Email/Password) ---------- */
+    window.fbStaffOk = false;
+    let staffResolve;
+    window.fbStaffReady = new Promise(r => staffResolve = r);
+    window.fbStaffLogin = (email, pass) => firebase.auth().signInWithEmailAndPassword(email, pass);
+    window.fbStaffLogout = () => firebase.auth().signOut();
+    firebase.auth().onAuthStateChanged(u => {
+    const ls = document.getElementById('login-screen');
+    if (u && !u.isAnonymous) {
+      window.fbStaffOk = true;
+      const em = document.getElementById('sidebar-user-email');
+      if (em) em.innerText = u.email || '';
+      if (ls) ls.classList.add('hidden');
+      staffResolve();
+    } else {
+      window.fbStaffOk = false;
+      if (ls) ls.classList.remove('hidden');
+    }
+  });
   const db = firebase.firestore();
   db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
 
@@ -3043,7 +3058,9 @@ async function tqCustomerMode(table) {
     if (started) return;
     started = true;
     try {
-      try { await firebase.auth().signInAnonymously(); } catch (e) { console.warn('Anonymous auth failed:', e.message); }
+      setBadge('Login required', AMBER);
+      await window.fbStaffReady;
+      setBadge('Connecting...', AMBER);
       const metaRef = db.collection('settings').doc('meta');
       const meta = await metaRef.get();
       if (!meta.exists) {
@@ -3134,6 +3151,7 @@ async function tqCustomerMode(table) {
     let tries = 0;
     (function listen() {
       if (typeof firebase === 'undefined' || !firebase.apps.length) { if (tries++ < 30) setTimeout(listen, 1500); return; }
+      if (!window.fbStaffOk) { setTimeout(listen, 1500); return; }
       let first = true;
       firebase.firestore().collection('kots').onSnapshot(s => {
         if (first) { first = false; return; }
@@ -4522,6 +4540,7 @@ async function tqCustomerMode(table) {
     let tries = 0;
     (function listen() {
       if (typeof firebase === 'undefined' || !firebase.apps.length) { if (tries++ < 40) setTimeout(listen, 1500); return; }
+        if (!window.fbStaffOk) { setTimeout(listen, 1500); return; }
       db = firebase.firestore();
       let first = true;
       db.collection('calls').onSnapshot(s => {
